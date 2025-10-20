@@ -1,0 +1,117 @@
+/* temple.css */
+
+/* 1. 基础变量 & 渐变背景 */
+:root {
+    --grad-start: #00c6ff;   /* 蓝绿起点 */
+    --grad-mid:   #0072ff;   /* 过渡色 */
+    --grad-end:   #ff4e9f;   /* 粉终点 */
+    --glass-bg:   rgba(255,255,255,.15);
+    --glass-bd:   rgba(255,255,255,.25);
+    --radius:     12px;
+    --trans:      .3s ease;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, var(--grad-start) 0%, var(--grad-mid) 50%, var(--grad-end) 100%);
+    background-attachment: fixed;
+    color: #fff;
+}
+
+/* 2. 打字机效果（仅 H1、H2） */
+h1, h2 {
+    font-family: "Courier New", monospace;   /* 像素风格等宽字体 */
+    letter-spacing: .05em;
+    overflow: hidden;
+    white-space: nowrap;
+    width: 0;
+    animation: typing 1.2s steps(16, end) forwards;
+    margin: .5em auto;
+    text-align: center;
+}
+
+@keyframes typing {
+    to { width: 100%; }
+}
+
+h1 { font-size: clamp(2.2rem, 5vw, 3.5rem); }
+h2 { font-size: clamp(1.4rem, 3vw, 2rem); }
+
+/* 3. 主容器 */
+.wrapper {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+/* 4. 游戏区：自适应卡片 */
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin: 2.5rem 0;
+}
+
+/* 5. 毛玻璃卡片 */
+.card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-bd);
+    border-radius: var(--radius);
+    padding: 1.5rem 1rem;
+    text-align: center;
+    transition: transform var(--trans), box-shadow var(--trans);
+    cursor: pointer;
+}
+.card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 8px 20px rgba(0,0,0,.2);
+}
+.card img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 6px;
+    margin-bottom: .8rem;
+}
+.card h3 {
+    font-size: 1.1rem;
+    margin-bottom: .4rem;
+}
+.card p {
+    font-size: .9rem;
+    opacity: .85;
+}
+
+/* 6. 底部链接 */
+footer {
+    text-align: center;
+    margin-top: 3rem;
+}
+footer a {
+    display: inline-block;
+    margin: 0 .8rem;
+    padding: .6rem 1.2rem;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-bd);
+    border-radius: var(--radius);
+    color: #fff;
+    text-decoration: none;
+    transition: background var(--trans);
+}
+footer a:hover {
+    background: rgba(255,255,255,.25);
+}
+
+/* 7. 小屏微调 */
+@media (max-width: 600px) {
+    .game-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+}
