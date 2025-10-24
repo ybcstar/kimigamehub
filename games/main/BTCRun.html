@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTC矿场</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .game-container {
+            background: #2a2a2a;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #ffd700;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-item {
+            background: #3a3a3a;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #ffd700;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        
+        .mine-area {
+            background: #1a1a1a;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid #4a4a4a;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .mine-area:hover {
+            border-color: #ffd700;
+            transform: scale(1.02);
+        }
+        
+        .mine-area:active {
+            transform: scale(0.98);
+        }
+        
+        .btc-icon {
+            font-size: 80px;
+            color: #ffd700;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .click-effect {
+            position: absolute;
+            pointer-events: none;
+            color: #ffd700;
+            font-size: 24px;
+            font-weight: bold;
+            animation: float-up 1s ease-out forwards;
+        }
+        
+        @keyframes float-up {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+        }
+        
+        .shop {
+            background: #3a3a3a;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .shop h2 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .shop-items {
+            display: grid;
+            gap: 10px;
+        }
+        
+        .shop-item {
+            background: #4a4a4a;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .shop-item:hover {
+            background: #5a5a5a;
+            transform: translateX(5px);
+        }
+        
+        .shop-item button {
+            background: #ffd700;
+            color: #1a1a1a;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .shop-item button:hover {
+            background: #ffed4e;
+            transform: scale(1.05);
+        }
+        
+        .shop-item button:disabled {
+            background: #666;
+            color: #333;
+            cursor: not-allowed;
+            transform: scale(1);
+        }
+        
+        .relics {
+            margin-top: 20px;
+            background: #3a3a3a;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .relics h2 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .relic-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .relic {
+            background: #4a4a4a;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            border: 2px solid #ffd700;
+        }
+        
+        .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2a2a2a;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(255, 0, 0, 0.5);
+            display: none;
+            z-index: 1000;
+        }
+        
+        .game-over h2 {
+            color: #ff4444;
+            margin-bottom: 20px;
+        }
+        
+        .game-over button {
+            background: #ffd700;
+            color: #1a1a1a;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+        
+        .game-over button:hover {
+            background: #ffed4e;
+            transform: scale(1.05);
+        }
+        
+        .success {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2a2a2a;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(0, 255, 0, 0.5);
+            display: none;
+            z-index: 1000;
+        }
+        
+        .success h2 {
+            color: #44ff44;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🗿 BTC矿场 🗿</h1>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-label">BTC 余额</div>
+                <div class="stat-value" id="btc">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">剩余点击次数</div>
+                <div class="stat-value" id="clicks">10</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">当前欠款</div>
+                <div class="stat-value" id="debt">10</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">奖券数量</div>
+                <div class="stat-value" id="tickets">0</div>
+            </div>
+        </div>
+        
+        <div class="mine-area" id="mineArea">
+            <div class="btc-icon">₿</div>
+            <p style="margin-top: 20px; color: #888;">点击挖矿</p>
+        </div>
+        
+        <div class="shop">
+            <h2>🎫 奖券商店</h2>
+            <div class="shop-items">
+                <div class="shop-item">
+                    <div>
+                        <strong>升级矿场</strong>
+                        <div style="font-size: 12px; color: #aaa;">每次点击获得更多BTC（倍率提升）</div>
+                    </div>
+                    <button onclick="upgradeMine()">购买 (5 奖券)</button>
+                </div>
+                <div class="shop-item">
+                    <div>
+                        <strong>购买圣遗物</strong>
+                        <div style="font-size: 12px; color: #aaa;">随机获得一个圣遗物</div>
+                    </div>
+                    <button onclick="buyRelic()">购买 (6 奖券)</button>
+                </div>
+                <div class="shop-item">
+                    <div>
+                        <strong>幸运提升</strong>
+                        <div style="font-size: 12px; color: #aaa;">提高获得奖券的概率</div>
+                    </div>
+                    <button onclick="upgradeLuck()">购买 (8 奖券)</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="relics">
+            <h2>🛡️ 圣遗物</h2>
+            <div class="relic-list" id="relicList">
+                <div style="color: #666;">暂无圣遗物</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="game-over" id="gameOver">
+        <h2>游戏结束！</h2>
+        <p style="margin-bottom: 20px;">你没有在规定次数内还清欠款！</p>
+        <button onclick="restartGame()">重新开始</button>
+    </div>
+    
+    <div class="success" id="success">
+        <h2>恭喜通关！</h2>
+        <p style="margin-bottom: 20px;">你成功还清了欠款，获得 <span id="rewardTickets">0</span> 奖券！</p>
+        <button onclick="nextRound()">下一轮</button>
+    </div>
+    
+    <script>
+        let gameState = {
+            btc: 0,
+            clicks: 10,
+            debt: 10,
+            tickets: 0,
+            round: 1,
+            btcPerClick: 1,
+            ticketChance: 0.1,
+            relics: [],
+            clickCount: 0
+        };
+        
+        const relics = [
+            { name: "黄金手套", effect: "btcPerClick", value: 0.5, description: "每次点击额外获得 0.5 BTC" },
+            { name: "幸运戒指", effect: "ticketChance", value: 0.05, description: "奖券获得概率 +5%" },
+            { name: "时间宝石", effect: "clicks", value: 3, description: "每轮额外获得 3 次点击次数" },
+            { name: "财富符咒", effect: "btcMultiplier", value: 0.1, description: "所有BTC获得 +10%" },
+            { name: "神秘护符", effect: "ticketBonus", value: 1, description: "还款奖励额外 +1 奖券" },
+            { name: "黄金手套", effect: "btcPerClick", value: 0.5, description: "每次点击额外获得 0.5 BTC" },
+            { name: "幸运戒指", effect: "ticketChance", value: 0.05, description: "奖券获得概率 +5%" },
+            { name: "时间宝石", effect: "clicks", value: 3, description: "每轮额外获得 3 次点击次数" },
+            { name: "财富符咒", effect: "btcMultiplier", value: 0.1, description: "所有BTC获得 +10%" },
+            { name: "神秘护符", effect: "ticketBonus", value: 1, description: "还款奖励额外 +1 奖券" },
+            { name: "钻石手套", effect: "btcPerClick", value: 1, description: "每次点击额外获得 1 BTC" },
+            { name: "幸运之靴", effect: "ticketChance", value: 0.1, description: "奖券获得概率 +10%" },
+            { name: "幸运之盔", effect: "clicks", value: 6, description: "每轮额外获得 6 次点击次数" },
+            { name: "僵尸符咒", effect: "btcMultiplier", value: 0.3, description: "所有BTC获得 +20%" },
+            { name: "无限护符", effect: "ticketBonus", value: 2, description: "还款奖励额外 +2 奖券" },
+            { name: "黄金手套", effect: "btcPerClick", value: 0.5, description: "每次点击额外获得 0.5 BTC" },
+            { name: "幸运戒指", effect: "ticketChance", value: 0.05, description: "奖券获得概率 +5%" },
+            { name: "时间宝石", effect: "clicks", value: 3, description: "每轮额外获得 3 次点击次数" },
+            { name: "财富符咒", effect: "btcMultiplier", value: 0.1, description: "所有BTC获得 +10%" },
+            { name: "神秘护符", effect: "ticketBonus", value: 1, description: "还款奖励额外 +1 奖券" },
+            { name: "黄金手套", effect: "btcPerClick", value: 0.5, description: "每次点击额外获得 0.5 BTC" },
+            { name: "幸运戒指", effect: "ticketChance", value: 0.05, description: "奖券获得概率 +5%" },
+            { name: "时间宝石", effect: "clicks", value: 3, description: "每轮额外获得 3 次点击次数" },
+            { name: "财富符咒", effect: "btcMultiplier", value: 0.1, description: "所有BTC获得 +10%" },
+            { name: "神秘护符", effect: "ticketBonus", value: 1, description: "还款奖励额外 +1 奖券" },
+            { name: "钻石手套", effect: "btcPerClick", value: 1, description: "每次点击额外获得 1 BTC" },
+            { name: "幸运之靴", effect: "ticketChance", value: 0.1, description: "奖券获得概率 +10%" },
+            { name: "幸运之盔", effect: "clicks", value: 6, description: "每轮额外获得 6 次点击次数" },
+            { name: "僵尸符咒", effect: "btcMultiplier", value: 0.3, description: "所有BTC获得 +20%" },
+            { name: "无限护符", effect: "ticketBonus", value: 2, description: "还款奖励额外 +2 奖券" },
+            { name: "黄金手套", effect: "btcPerClick", value: 0.5, description: "每次点击额外获得 0.5 BTC" },
+            { name: "幸运戒指", effect: "ticketChance", value: 0.05, description: "奖券获得概率 +5%" },
+            { name: "时间宝石", effect: "clicks", value: 3, description: "每轮额外获得 3 次点击次数" },
+            { name: "财富符咒", effect: "btcMultiplier", value: 0.1, description: "所有BTC获得 +10%" },
+            { name: "神秘护符", effect: "ticketBonus", value: 1, description: "还款奖励额外 +1 奖券" },
+            { name: "黄金手套", effect: "btcPerClick", value: 0.5, description: "每次点击额外获得 0.5 BTC" },
+            { name: "幸运戒指", effect: "ticketChance", value: 0.05, description: "奖券获得概率 +5%" },
+            { name: "时间宝石", effect: "clicks", value: 3, description: "每轮额外获得 3 次点击次数" },
+            { name: "财富符咒", effect: "btcMultiplier", value: 0.1, description: "所有BTC获得 +10%" },
+            { name: "神秘护符", effect: "ticketBonus", value: 1, description: "还款奖励额外 +1 奖券" },
+            { name: "钻石手套", effect: "btcPerClick", value: 1, description: "每次点击额外获得 1 BTC" },
+            { name: "幸运之靴", effect: "ticketChance", value: 0.1, description: "奖券获得概率 +10%" },
+            { name: "幸运之盔", effect: "clicks", value: 6, description: "每轮额外获得 6 次点击次数" },
+            { name: "僵尸符咒", effect: "btcMultiplier", value: 0.3, description: "所有BTC获得 +20%" },
+            { name: "无限护符", effect: "ticketBonus", value: 2, description: "还款奖励额外 +2 奖券" },
+            { name: "黄金手套", effect: "btcPerClick", value: 0.5, description: "每次点击额外获得 0.5 BTC" },
+            { name: "幸运戒指", effect: "ticketChance", value: 0.05, description: "奖券获得概率 +5%" },
+            { name: "时间宝石", effect: "clicks", value: 3, description: "每轮额外获得 3 次点击次数" },
+            { name: "财富符咒", effect: "btcMultiplier", value: 0.1, description: "所有BTC获得 +10%" },
+            { name: "神秘护符", effect: "ticketBonus", value: 1, description: "还款奖励额外 +1 奖券" },
+            { name: "黄金手套", effect: "btcPerClick", value: 0.5, description: "每次点击额外获得 0.5 BTC" },
+            { name: "幸运戒指", effect: "ticketChance", value: 0.05, description: "奖券获得概率 +5%" },
+            { name: "时间宝石", effect: "clicks", value: 3, description: "每轮额外获得 3 次点击次数" },
+            { name: "财富符咒", effect: "btcMultiplier", value: 0.1, description: "所有BTC获得 +10%" },
+            { name: "神秘护符", effect: "ticketBonus", value: 1, description: "还款奖励额外 +1 奖券" },
+            { name: "钻石手套", effect: "btcPerClick", value: 1, description: "每次点击额外获得 1 BTC" },
+            { name: "幸运之靴", effect: "ticketChance", value: 0.1, description: "奖券获得概率 +10%" },
+            { name: "幸运之盔", effect: "clicks", value: 6, description: "每轮额外获得 6 次点击次数" },
+            { name: "僵尸符咒", effect: "btcMultiplier", value: 0.3, description: "所有BTC获得 +20%" },
+            { name: "无限护符", effect: "ticketBonus", value: 2, description: "还款奖励额外 +2 奖券" },
+            { name: "秘密手套", effect: "btcPerClick", value: 100, description: "每次点击额外获得 100 BTC" },
+            { name: "秘密之靴", effect: "ticketChance", value: 1, description: "奖券获得概率 +100%" },
+            { name: "秘密之盔", effect: "clicks", value: 12, description: "每轮额外获得 12 次点击次数" },
+            { name: "秘密符咒", effect: "btcMultiplier", value: 2, description: "所有BTC获得 +200%" },
+            { name: "秘密护符", effect: "ticketBonus", value: 20, description: "还款奖励额外 +20 奖券" },
+        ];
+        
+        function updateDisplay() {
+            document.getElementById('btc').textContent = gameState.btc.toFixed(1);
+            document.getElementById('clicks').textContent = gameState.clicks;
+            document.getElementById('debt').textContent = gameState.debt;
+            document.getElementById('tickets').textContent = gameState.tickets;
+            
+            if (gameState.clicks <= 0 && gameState.btc < gameState.debt) {
+                document.getElementById('gameOver').style.display = 'block';
+            } else if (gameState.btc >= gameState.debt) {
+                let reward = Math.floor(gameState.debt / 2) + gameState.relics.filter(r => r.effect === 'ticketBonus').length;
+                document.getElementById('rewardTickets').textContent = reward;
+                document.getElementById('success').style.display = 'block';
+            }
+        }
+        
+        function mine(e) {
+            if (gameState.clicks <= 0) return;
+            
+            gameState.clicks--;
+            gameState.clickCount++;
+            
+            let btcGained = gameState.btcPerClick;
+            
+            // 应用圣遗物效果
+            gameState.relics.forEach(relic => {
+                if (relic.effect === 'btcPerClick') {
+                    btcGained += relic.value;
+                } else if (relic.effect === 'btcMultiplier') {
+                    btcGained *= (1 + relic.value);
+                }
+            });
+            
+            gameState.btc += btcGained;
+            
+            // 创建点击效果
+            const effect = document.createElement('div');
+            effect.className = 'click-effect';
+            effect.textContent = `+${btcGained.toFixed(1)} BTC`;
+            effect.style.left = e.offsetX + 'px';
+            effect.style.top = e.offsetY + 'px';
+            e.target.appendChild(effect);
+            setTimeout(() => effect.remove(), 1000);
+            
+            // 奖券概率
+            if (Math.random() < gameState.ticketChance) {
+                gameState.tickets++;
+                const ticketEffect = document.createElement('div');
+                ticketEffect.className = 'click-effect';
+                ticketEffect.textContent = '+1 奖券！';
+                ticketEffect.style.left = (e.offsetX + 50) + 'px';
+                ticketEffect.style.top = e.offsetY + 'px';
+                ticketEffect.style.color = '#ff6b6b';
+                e.target.appendChild(ticketEffect);
+                setTimeout(() => ticketEffect.remove(), 1000);
+            }
+            
+            updateDisplay();
+        }
+        
+        function upgradeMine() {
+            if (gameState.tickets >= 5) {
+                gameState.tickets -= 5;
+                gameState.btcPerClick = Math.max(1, gameState.btcPerClick * 1.5);
+                updateDisplay();
+            }
+        }
+        
+        function buyRelic() {
+            if (gameState.tickets >= 6) {
+                gameState.tickets -= 6;
+                const relic = relics[Math.floor(Math.random() * relics.length)];
+                gameState.relics.push({...relic});
+                updateRelicDisplay();
+                updateDisplay();
+            }
+        }
+        
+        function upgradeLuck() {
+            if (gameState.tickets >= 8) {
+                gameState.tickets -= 8;
+                gameState.ticketChance += 0.05;
+                updateDisplay();
+            }
+        }
+        
+        function updateRelicDisplay() {
+            const relicList = document.getElementById('relicList');
+            if (gameState.relics.length === 0) {
+                relicList.innerHTML = '<div style="color: #666;">暂无圣遗物</div>';
+            } else {
+                relicList.innerHTML = gameState.relics.map(relic => 
+                    `<div class="relic">${relic.name}: ${relic.description}</div>`
+                ).join('');
+            }
+        }
+        
+        function restartGame() {
+            gameState = {
+                btc: 0,
+                clicks: 10,
+                debt: 10,
+                tickets: 0,
+                round: 1,
+                btcPerClick: 1,
+                ticketChance: 0.1,
+                relics: [],
+                clickCount: 0
+            };
+            document.getElementById('gameOver').style.display = 'none';
+            updateDisplay();
+            updateRelicDisplay();
+        }
+        
+        function nextRound() {
+            let reward = Math.floor(gameState.debt / 2) + gameState.relics.filter(r => r.effect === 'ticketBonus').length;
+            gameState.tickets += reward;
+            
+            gameState.round++;
+            let newDebt = gameState.debt * (((gameState.round + 0.5)/2+gameState.ticketChance+(relics.length)/2))/6 + (gameState.debt / (gameState.round - 1));
+            gameState.debt = Math.floor(newDebt);
+            gameState.btc = 0;
+            gameState.clicks = 15 + gameState.relics.filter(r => r.effect === 'clicks').length * 4;
+
+            document.getElementById('success').style.display = 'none';
+            updateDisplay();
+        }
+        
+        document.getElementById('mineArea').addEventListener('click', mine);
+        updateDisplay();
+    </script>
+</body>
+</html>
