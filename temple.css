@@ -111,6 +111,18 @@ footer a:hover {
     background: rgba(255,255,255,.25);
 }
 
+a {
+    display: inline-block;
+    margin: 0 .8rem;
+    padding: .6rem 1.2rem;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-bd);
+    border-radius: var(--radius);
+    color: #fff;
+    text-decoration: none;
+    transition: background var(--trans);
+}
+
 /* 7. 小屏微调 */
 @media (max-width: 600px) {
     .game-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
