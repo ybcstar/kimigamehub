@@ -532,7 +532,7 @@
             gameState.tickets += reward;
             
             gameState.round++;
-            let newDebt = gameState.debt * (((gameState.round + 0.5)/2+gameState.ticketChance+(relics.length)/2))/6 + (gameState.debt / (gameState.round - 1));
+            let newDebt = gameState.debt * ((((gameState.round + 0.5)/2+gameState.ticketChance+(relics.length)/2))/6 + (gameState.debt / (gameState.round - 1)))/8;
             gameState.debt = Math.floor(newDebt);
             gameState.btc = 0;
             gameState.clicks = 15 + gameState.relics.filter(r => r.effect === 'clicks').length * 4;
@@ -546,3 +546,4 @@
     </script>
 </body>
 </html>
+
