@@ -1,4 +1,10 @@
 /* temple.css */
+@font-face {
+  font-family: 'maplemono';
+  src: url('font/MapleMono-CN-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
 
 /* 1. 基础变量 & 渐变背景 */
 :root {
@@ -19,7 +25,7 @@
 
 html, body {
     height: 100%;
-    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'maplemono';
     background: linear-gradient(135deg, var(--grad-start) 0%, var(--grad-mid) 50%, var(--grad-end) 100%);
     background-attachment: fixed;
     color: #fff;
@@ -27,7 +33,7 @@ html, body {
 
 /* 2. 打字机效果（仅 H1、H2） */
 h1, h2 {
-    font-family: "Courier New", monospace;   /* 像素风格等宽字体 */
+    font-family: 'maplemono', monospace;   /* 像素风格等宽字体 */
     letter-spacing: .05em;
     overflow: hidden;
     white-space: nowrap;
@@ -112,15 +118,8 @@ footer a:hover {
 }
 
 a {
-    display: inline-block;
-    margin: 0 .8rem;
-    padding: .6rem 1.2rem;
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-bd);
-    border-radius: var(--radius);
     color: #fff;
     text-decoration: none;
-    transition: background var(--trans);
 }
 
 /* 7. 小屏微调 */
