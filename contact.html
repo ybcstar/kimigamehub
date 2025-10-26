@@ -10,8 +10,29 @@
     <h1>Contact Us-联系我们</h1>
     <section class="game-grid">
     <section class="card">邮箱：3162610005@qq.com / stargithub@outlook.com</section>
-    <section class="card">或者在<a href="https://github.com/ybcstar/kimigamehub">Github</a>里面提交Issue</section>
+    <section class="card">或者在<span class="external-link" data-href="https://github.com/ybcstar/kimigamehub">Github</span>里面提交Issue</section>
     </section>
-    <section class="card"><a href="index.html">返回主页</a></section>
+    <section class="card link-card" data-href="index.html">返回主页</section>
+    
+    <script>
+    // 处理外部链接和内部链接
+    document.addEventListener('click', function(e) {
+        var linkElement = e.target.closest('.link-card, .external-link');
+        if (linkElement && linkElement.dataset.href) {
+            var href = linkElement.dataset.href;
+            if (linkElement.classList.contains('external-link')) {
+                // 外部链接在新窗口打开
+                window.open(href, '_blank');
+            } else {
+                // 内部链接在当前窗口打开
+                try {
+                    window.location.href = href;
+                } catch (err) {
+                    window.open(href, '_self');
+                }
+            }
+        }
+    });
+    </script>
 </body>
 </html>

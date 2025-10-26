@@ -13,16 +13,33 @@
 
         <!-- 游戏卡片区 -->
         <section class="game-grid">
-            <section class="card"><a href="games/iframe/tetris.html">俄罗斯方块（建议电脑游玩）</a></section>
-            <section class="card"><a href="games/iframe/BTCRun.html">比特币矿区</a></section>
+            <section class="card link-card" data-href="games/iframe/tetris.html">俄罗斯方块（建议电脑游玩）</section>
+            <section class="card link-card" data-href="games/iframe/BTCRun.html">比特币矿区</section>
         </section>
 
         <!-- 底部链接 -->
         <footer>
-            <a href="contact.html">联系我们</a>
-            <a href="get_game.html">投稿说明</a>
-            <a href="credits.html">制作组</a>
+            <section class="footer-link link-card" data-href="contact.html">联系我们</section>
+            <section class="footer-link link-card" data-href="get_game.html">投稿说明</section>
+            <section class="footer-link link-card" data-href="credits.html">制作组</section>
         </footer>
+        
+        <script>
+        // 使用事件委托处理链接点击，兼容本地调试
+        document.addEventListener('click', function(e) {
+            var linkElement = e.target.closest('.link-card');
+            if (linkElement && linkElement.dataset.href) {
+                var href = linkElement.dataset.href;
+                // 尝试使用location.href，如果失败则尝试其他方式
+                try {
+                    window.location.href = href;
+                } catch (err) {
+                    // 本地调试模式下使用window.open作为备选
+                    window.open(href, '_self');
+                }
+            }
+        });
+        </script>
     </div>
 </body>
 </html>

@@ -9,17 +9,38 @@
 <body>
     <h1>制作组</h1>
     <section class="card">
-        <section class="card"><h2>Kimi官网<br><a href="https://www.kimi.com"><h3>www.kimi.com</h3></a></h2></section><br>
-        <section class="card"><h2>网站作者</h2><br><a href="https://github.com/ybcstar/"><h3>YbcStar</h3></a></section><br>
+        <section class="card external-link" data-href="https://www.kimi.com"><h2>Kimi官网<br><h3>www.kimi.com</h3></section><br>
+        <section class="card external-link" data-href="https://github.com/ybcstar/"><h2>网站作者</h2><br><h3>YbcStar</h3></section><br>
         <section class="card"><h2>游戏投稿人及其作品</h2>
             <p>YbcStar:俄罗斯方块，比特币矿区</p>
         </section><br>
         <section class="card">相关链接
             <br>
-            <section class="card"><a href="other/LICENSE/MapleMonoFont/LICENSE.txt">1.MapleMono-CN-Regular字体LICENSE</a></section>
+            <section class="card link-card" data-href="other/LICENSE/MapleMonoFont/LICENSE.txt">1.MapleMono-CN-Regular字体LICENSE</section>
             <br>
         </section>
-        <section class="card"><a href="index.html">返回主页</a></section>
+        <section class="card link-card" data-href="index.html">返回主页</section>
     </section>
+    
+    <script>
+    // 统一处理所有链接点击
+    document.addEventListener('click', function(e) {
+        var linkElement = e.target.closest('.link-card, .external-link');
+        if (linkElement && linkElement.dataset.href) {
+            var href = linkElement.dataset.href;
+            if (linkElement.classList.contains('external-link')) {
+                // 外部链接在新窗口打开
+                window.open(href, '_blank');
+            } else {
+                // 内部链接在当前窗口打开
+                try {
+                    window.location.href = href;
+                } catch (err) {
+                    window.open(href, '_self');
+                }
+            }
+        }
+    });
+    </script>
 </body>
 </html>

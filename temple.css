@@ -122,6 +122,38 @@ a {
     text-decoration: none;
 }
 
+/* 可点击的卡片链接样式 */
+.link-card {
+    cursor: pointer;
+    transition: transform var(--trans), box-shadow var(--trans), background var(--trans);
+}
+.link-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 8px 20px rgba(0,0,0,.2);
+    background: rgba(255,255,255,.25);
+}
+
+/* 内联链接文本样式 */
+.external-link, .link-text {
+    cursor: pointer;
+    color: #fff;
+    text-decoration: underline;
+    transition: opacity var(--trans);
+}
+.external-link:hover, .link-text:hover {
+    opacity: 0.8;
+}
+
+/* 底部链接样式兼容 */
+footer .link-card {
+    display: inline-block;
+    margin: 0 .8rem;
+    padding: .6rem 1.2rem;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-bd);
+    border-radius: var(--radius);
+}
+
 /* 7. 小屏微调 */
 @media (max-width: 600px) {
     .game-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
