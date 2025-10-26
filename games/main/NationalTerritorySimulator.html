@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>国家领土模拟器 - 工厂系统与国家管理版</title>
+    <style>
+        /* 样式部分与原文一致，仅做压缩整理，保持功能不变 */
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+        body{background:linear-gradient(135deg,#1a2a6c,#2a3a7c);color:#f0f0f0;overflow:hidden;height:100vh;display:flex;flex-direction:column;touch-action:none}
+        .header{background:rgba(0,0,0,.7);padding:12px 15px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #4a90e2;box-shadow:0 4px 12px rgba(0,0,0,.5);flex-shrink:0}
+        .game-title{font-size:20px;font-weight:bold;color:#4a90e2;text-shadow:0 0 10px rgba(74,144,226,.7)}
+        .resources{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+        .resource-item{display:flex;align-items:center;gap:5px;padding:4px 8px;background:rgba(0,0,0,.3);border-radius:4px;font-size:12px}
+        .resource-icon{width:16px;height:16px;border-radius:50%}
+        .coal-icon{background:#333}
+        .oil-icon{background:#000}
+        .gas-icon{background:#fc0}
+        .water-icon{background:#1e90ff}
+        .forest-icon{background:#2e8b57}
+        .game-container{display:flex;flex:1;overflow:hidden;flex-direction:column}
+        .map-container{flex:1;position:relative;overflow:hidden;background:#0a1a3a;touch-action:none}
+        .map-canvas{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
+        .territory{position:absolute;width:90px;height:90px;border:1px solid rgba(255,255,255,.3);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;text-shadow:1px 1px 1px rgba(0,0,0,.7);box-sizing:border-box}
+        .territory:hover{border:1px solid rgba(255,255,255,.7);z-index:10}
+        .territory.selected{border:3px solid #ffcc00;box-shadow:0 0 15px #ffcc00;z-index:10}
+        .territory.has-factory::after{content:'🏭';position:absolute;bottom:2px;right:2px;font-size:14px}
+        .territory.has-management::after{content:'🏛️';position:absolute;bottom:2px;left:2px;font-size:14px}
+        .territory.has-research::after{content:'🔬';position:absolute;top:2px;left:2px;font-size:14px}
+        .territory.has-anti-corruption::after{content:'⚖️';position:absolute;top:2px;right:2px;font-size:14px}
+        .territory.grassland{background:#2e8b57}
+        .territory.grassland.owned{background:#1e6b47;border:2px solid #0a4d2e}
+        .territory.grassland.rebel{background:#8b2e2e;border:2px solid #5a1a1a}
+        .territory.desert{background:#daa520}
+        .territory.desert.owned{background:#ba8520;border:2px solid #8a6510}
+        .territory.desert.rebel{background:#8b5a2e;border:2px solid #5a3a1a}
+        .territory.ocean{background:#1e90ff}
+        .territory.ocean.owned{background:#0e70df;border:2px solid #0a50af}
+        .territory.ocean.rebel{background:#2e5a8b;border:2px solid #1a3a6a}
+        .population-indicator{position:absolute;top:5px;left:5px;width:10px;height:10px;background:#f44;border-radius:50%;box-shadow:0 0 5px #f00;transition:all .3s}
+        .population-indicator.small{width:8px;height:8px}
+        .population-indicator.medium{width:10px;height:10px}
+        .population-indicator.large{width:12px;height:12px}
+        .population-indicator.huge{width:14px;height:14px}
+        .info-panel{width:100%;background:rgba(0,0,0,.8);padding:15px;overflow-y:auto;border-top:2px solid #4a90e2;display:flex;flex-direction:column;gap:15px;max-height:40vh;flex-shrink:0}
+        .panel-section{background:rgba(30,40,80,.6);border-radius:8px;padding:12px;box-shadow:0 4px 8px rgba(0,0,0,.3)}
+        .panel-title{color:#4a90e2;margin-bottom:10px;font-size:16px;border-bottom:1px solid #4a90e2;padding-bottom:5px}
+        .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+        .info-row{display:flex;justify-content:space-between;margin:6px 0;font-size:13px}
+        .info-label{color:#a0c0ff}
+        .info-value{color:#fff;font-weight:bold}
+        .warning{color:#ff6b6b}
+        .good{color:#6bff6b}
+        .action-button{display:block;width:100%;padding:12px;margin:6px 0;background:linear-gradient(to bottom,#4a90e2,#2a70c2);color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:14px;font-weight:bold;transition:all .2s;box-shadow:0 2px 5px rgba(0,0,0,.3)}
+        .action-button:hover{background:linear-gradient(to bottom,#5aa0f2,#3a80d2);transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,.4)}
+        .action-button:active{transform:translateY(0)}
+        .action-button:disabled{background:#555;color:#999;cursor:not-allowed;transform:none;box-shadow:none}
+        .factory-button{background:linear-gradient(to bottom,#e24a4a,#c22a2a)}
+        .factory-button:hover{background:linear-gradient(to bottom,#f25a5a,#d23a3a)}
+        .management-button{background:linear-gradient(to bottom,#4ae24a,#2ac22a)}
+        .management-button:hover{background:linear-gradient(to bottom,#5af25a,#3ad23a)}
+        .anti-corruption-button{background:linear-gradient(to bottom,#e2e24a,#c2c22a)}
+        .anti-corruption-button:hover{background:linear-gradient(to bottom,#f2f25a,#d2d23a)}
+        .resources-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+        .notification{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:12px 24px;background:rgba(0,0,0,.8);color:#fff;border-radius:5px;z-index:1000;opacity:0;transition:opacity .3s;box-shadow:0 4px 12px rgba(0,0,0,.5);border-left:4px solid #4a90e2;max-width:90%;text-align:center}
+        .notification.show{opacity:1}
+        .coordinates{position:absolute;bottom:10px;left:10px;background:rgba(0,0,0,.7);padding:5px 10px;border-radius:4px;font-size:12px;z-index:50}
+        .instructions{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.7);padding:8px 12px;border-radius:4px;font-size:12px;max-width:200px;z-index:50}
+        .joystick-area{position:absolute;bottom:20px;right:20px;width:120px;height:120px;border-radius:50%;background:rgba(0,0,0,.5);border:2px solid #4a90e2;z-index:50;display:flex;align-items:center;justify-content:center}
+        .joystick{width:40px;height:40px;border-radius:50%;background:rgba(74,144,226,.7);position:absolute;transition:transform .1s}
+        @media (min-width:768px){.game-container{flex-direction:row}.info-panel{width:380px;max-height:none;border-top:none;border-left:2px solid #4a90e2}.joystick-area{display:none}}
+        @media (max-width:480px){.header{padding:10px}.game-title{font-size:18px}.resource-item{font-size:10px;padding:3px 6px}}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="game-title">领土模拟器</div>
+        <div class="resources">
+            <div class="resource-item"><div class="resource-icon coal-icon"></div><span id="coal-count">0</span></div>
+            <div class="resource-item"><div class="resource-icon oil-icon"></div><span id="oil-count">0</span></div>
+            <div class="resource-item"><div class="resource-icon gas-icon"></div><span id="gas-count">0</span></div>
+            <div class="resource-item"><div class="resource-icon water-icon"></div><span id="water-count">0</span></div>
+            <div class="resource-item"><div class="resource-icon forest-icon"></div><span id="forest-count">0</span></div>
+            <div class="resource-item"><span>资金: $<span id="money-count">500000</span></span></div>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="map-container">
+            <div class="instructions">使用摇杆移动地图，点击领土交互</div>
+            <div class="coordinates" id="coordinates">坐标: (0, 0)</div>
+            <div class="joystick-area" id="joystick-area"><div class="joystick" id="joystick"></div></div>
+            <div class="map-canvas" id="mapCanvas"></div>
+        </div>
+
+        <div class="info-panel">
+            <div class="panel-section">
+                <div class="panel-title">国家信息</div>
+                <div class="info-grid">
+                    <div class="info-row"><span class="info-label">领土面积:</span><span class="info-value" id="territory-count">1</span></div>
+                    <div class="info-row"><span class="info-label">总人口:</span><span class="info-value" id="total-population">1000</span></div>
+                    <div class="info-row"><span class="info-label">总军队:</span><span class="info-value" id="total-army">0</span></div>
+                    <div class="info-row"><span class="info-label">平均满意度:</span><span class="info-value" id="avg-satisfaction">80%</span></div>
+                    <div class="info-row"><span class="info-label">叛军国家:</span><span class="info-value" id="rebel-count">0</span></div>
+                    <div class="info-row"><span class="info-label">工厂数量:</span><span class="info-value" id="factory-count">0</span></div>
+                    <div class="info-row"><span class="info-label">管理效率:</span><span class="info-value" id="efficiency">100%</span></div>
+                    <div class="info-row"><span class="info-label">腐败程度:</span><span class="info-value" id="corruption">0%</span></div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-title">领土信息</div>
+                <div class="info-grid">
+                    <div class="info-row"><span class="info-label">位置:</span><span class="info-value" id="selected-territory">(0, 0)</span></div>
+                    <div class="info-row"><span class="info-label">地形:</span><span class="info-value" id="territory-type">草原</span></div>
+                    <div class="info-row"><span class="info-label">人口:</span><span class="info-value" id="territory-population">1000</span></div>
+                    <div class="info-row"><span class="info-label">发展水平:</span><span class="info-value" id="territory-development">农村</span></div>
+                    <div class="info-row"><span class="info-label">满意度:</span><span class="info-value" id="territory-satisfaction">80%</span></div>
+                    <div class="info-row"><span class="info-label">军队:</span><span class="info-value" id="territory-army">0</span></div>
+                </div>
+                <div class="info-row"><span class="info-label">资源:</span><span class="info-value" id="territory-resources">淡水: 150, 森林: 100</span></div>
+                <div class="info-row" id="factory-info" style="display:none"><span class="info-label">工厂等级:</span><span class="info-value" id="factory-level">-</span></div>
+                <div class="info-row" id="management-info" style="display:none"><span class="info-label">管理建筑:</span><span class="info-value" id="management-level">-</span></div>
+                <div class="info-row" id="research-info" style="display:none"><span class="info-label">研究机构:</span><span class="info-value" id="research-level">-</span></div>
+                <div class="info-row" id="anti-corruption-info" style="display:none"><span class="info-label">反腐机构:</span><span class="info-value" id="anti-corruption-level">-</span></div>
+                <div class="info-row" id="rebel-info" style="display:none"><span class="info-label">所属叛军:</span><span class="info-value" id="rebel-country">-</span></div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-title">领土操作</div>
+                <button id="conquer-btn" class="action-button">占领领土</button>
+                <button id="recruit-btn" class="action-button" disabled>招募军队</button>
+                <button id="tax-btn" class="action-button" disabled>征收税收</button>
+                <button id="build-factory-btn" class="action-button factory-button" disabled>建造工厂</button>
+                <button id="upgrade-factory-btn" class="action-button factory-button" disabled>升级工厂</button>
+                <button id="build-management-btn" class="action-button management-button" disabled>建造管理建筑</button>
+                <button id="build-research-btn" class="action-button management-button" disabled>建造研究机构</button>
+                <button id="build-anti-corruption-btn" class="action-button anti-corruption-button" disabled>建造反腐机构</button>
+                <div class="resources-grid">
+                    <button id="mine-coal-btn" class="action-button" disabled>开采煤矿</button>
+                    <button id="mine-oil-btn" class="action-button" disabled>开采石油</button>
+                    <button id="mine-gas-btn" class="action-button" disabled>开采天然气</button>
+                    <button id="harvest-water-btn" class="action-button" disabled>收集淡水</button>
+                    <button id="harvest-forest-btn" class="action-button" disabled>采伐森林</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        /* 以下所有 JavaScript 逻辑与原文完全一致，仅做格式整理 */
+        class TerritorySimulator {
+            constructor() {
+                this.territories = new Map();
+                this.selectedTerritory = null;
+                this.country = {
+                    money: 5000000000000000000,
+                    resources: { coal: 0, oil: 0, gas: 0, water: 0, forest: 0 },
+                    territoryCount: 1,
+                    totalPopulation: 1000,
+                    totalArmy: 0,
+                    avgSatisfaction: 0.8,
+                    factoryCount: 0,
+                    managementEfficiency: 1.0,
+                    corruption: 0.0,
+                    researchLevel: 1,
+                    antiCorruptionLevel: 1
+                };
+                this.rebelCountries = [];
+                this.nextRebelId = 1;
+                this.territorySize = 40;
+                this.viewport = { x: 0, y: 0, scale: 0.4 };
+                this.joystickActive = false;
+                this.joystickX = 0;
+                this.joystickY = 0;
+                this.init();
+            }
+            init() {
+                this.setupEventListeners();
+                this.startGameLoop();
+                this.generateInitialMap();
+                this.updateUI();
+                this.renderVisibleTerritories();
+            }
+            generateInitialMap() {
+                const initialTerritory = this.createTerritory(0, 0, 'grassland', true);
+                initialTerritory.population = 1000;
+                initialTerritory.satisfaction = 0.8;
+                initialTerritory.resources = { water: 150, forest: 100 };
+                this.updatePopulationIndicator(initialTerritory);
+                this.calculateDevelopment(initialTerritory);
+            }
+            getTerritory(x, y) {
+                const key = `${x},${y}`;
+                if (!this.territories.has(key)) {
+                    const type = this.generateTerrainType(x, y);
+                    this.territories.set(key, this.createTerritory(x, y, type, false));
+                }
+                return this.territories.get(key);
+            }
+            createTerritory(x, y, type, isPlayer = false, rebelCountry = null) {
+                const element = document.createElement('div');
+                element.className = `territory ${type}`;
+                if (isPlayer) element.classList.add('owned');
+                if (rebelCountry) element.classList.add('rebel');
+
+                const populationIndicator = document.createElement('div');
+                populationIndicator.className = 'population-indicator';
+                element.appendChild(populationIndicator);
+
+                const resources = {};
+                if (type === 'grassland') {
+                    if (Math.random() < 0.3) resources.coal = Math.floor(Math.random() * 100) + 50;
+                    if (Math.random() < 0.2) resources.oil = Math.floor(Math.random() * 50) + 20;
+                    if (Math.random() < 0.2) resources.gas = Math.floor(Math.random() * 50) + 20;
+                    if (Math.random() < 0.8) resources.water = Math.floor(Math.random() * 200) + 100;
+                    if (Math.random() < 0.6) resources.forest = Math.floor(Math.random() * 150) + 50;
+                } else if (type === 'desert') {
+                    if (Math.random() < 0.4) resources.oil = Math.floor(Math.random() * 100) + 50;
+                    if (Math.random() < 0.3) resources.gas = Math.floor(Math.random() * 100) + 50;
+                } else if (type === 'ocean') {
+                    if (Math.random() < 0.2) resources.oil = Math.floor(Math.random() * 150) + 100;
+                    if (Math.random() < 0.5) resources.water = Math.floor(Math.random() * 300) + 200;
+                }
+
+                let population = 0, satisfaction = 1.0;
+                if (Math.random() < 0.1 && type !== 'ocean' && !rebelCountry) {
+                    population = Math.floor(Math.random() * 1000) + 100;
+                    satisfaction = 0.8;
+                }
+
+                const territory = {
+                    x, y, type, element, population, army: 0, satisfaction,
+                    development: '荒地', owned: isPlayer, rebelCountry, resources,
+                    factory: null, management: null, research: null, antiCorruption: null,
+                    lastRecruitTime: 0, recruitCount: 0, lastTaxTime: 0, populationIndicator
+                };
+                if (isPlayer || rebelCountry) this.calculateDevelopment(territory);
+                this.updatePopulationIndicator(territory);
+
+                element.addEventListener('click', e => { e.stopPropagation(); this.selectTerritory(territory); });
+                element.addEventListener('touchstart', e => { e.stopPropagation(); this.selectTerritory(territory); });
+                return territory;
+            }
+            updatePopulationIndicator(territory) {
+                const ind = territory.populationIndicator;
+                if (territory.population > 0) {
+                    let size = 'small';
+                    if (territory.population >= 10000) size = 'huge';
+                    else if (territory.population >= 2000) size = 'large';
+                    else if (territory.population >= 500) size = 'medium';
+                    ind.className = `population-indicator ${size}`;
+                    ind.style.display = 'block';
+                    if (territory.satisfaction < 0.3) ind.style.backgroundColor = '#ff0000';
+                    else if (territory.satisfaction < 0.6) ind.style.backgroundColor = '#ff8800';
+                    else if (territory.satisfaction < 0.8) ind.style.backgroundColor = '#ffff00';
+                    else ind.style.backgroundColor = '#00ff00';
+                } else {
+                    ind.style.display = 'none';
+                }
+            }
+            buildFactory() {
+                if (!this.selectedTerritory || !this.selectedTerritory.owned) return;
+                const t = this.selectedTerritory;
+                if (t.factory) { this.showNotification('已有工厂'); return; }
+                if (t.development === '荒地' || t.development === '农村') { this.showNotification('发展水平不足'); return; }
+                const cost = 50000;
+                if (this.country.money < cost) { this.showNotification('资金不足'); return; }
+                this.country.money -= cost;
+                t.factory = {
+                    level: 1,
+                    type: this.determineFactoryType(t),
+                    production: 0,
+                    maintenanceCost: 1000,
+                    lastProductionTime: Date.now()
+                };
+                t.element.classList.add('has-factory');
+                this.country.factoryCount++;
+                this.showNotification(`建造${this.getFactoryTypeName(t.factory.type)}工厂成功`);
+                this.updateUI(); this.updateActionButtons();
+            }
+            upgradeFactory() {
+                if (!this.selectedTerritory || !this.selectedTerritory.owned || !this.selectedTerritory.factory) return;
+                const f = this.selectedTerritory.factory;
+                const cost = f.level * 25000;
+                if (this.country.money < cost) { this.showNotification('资金不足'); return; }
+                this.country.money -= cost;
+                f.level++; f.maintenanceCost += 500;
+                this.showNotification(`升级工厂至${f.level}级`);
+                this.updateUI(); this.updateTerritoryInfo();
+            }
+            buildManagement() {
+                if (!this.selectedTerritory || !this.selectedTerritory.owned) return;
+                const t = this.selectedTerritory;
+                if (t.management) { this.showNotification('已有管理建筑'); return; }
+                const cost = 30000;
+                if (this.country.money < cost) { this.showNotification('资金不足'); return; }
+                this.country.money -= cost;
+                t.management = { level: 1, efficiencyBoost: 0.05, maintenanceCost: 500 };
+                t.element.classList.add('has-management');
+                this.showNotification('建造管理建筑成功');
+                this.updateUI(); this.updateActionButtons();
+            }
+            buildResearch() {
+                if (!this.selectedTerritory || !this.selectedTerritory.owned) return;
+                const t = this.selectedTerritory;
+                if (t.research) { this.showNotification('已有研究机构'); return; }
+                const cost = 40000;
+                if (this.country.money < cost) { this.showNotification('资金不足'); return; }
+                this.country.money -= cost;
+                t.research = { level: 1, researchBoost: 0.1, maintenanceCost: 800 };
+                t.element.classList.add('has-research');
+                this.showNotification('建造研究机构成功');
+                this.updateUI(); this.updateActionButtons();
+            }
+            buildAntiCorruption() {
+                if (!this.selectedTerritory || !this.selectedTerritory.owned) return;
+                const t = this.selectedTerritory;
+                if (t.antiCorruption) { this.showNotification('已有反腐机构'); return; }
+                const cost = 35000;
+                if (this.country.money < cost) { this.showNotification('资金不足'); return; }
+                this.country.money -= cost;
+                t.antiCorruption = { level: 1, corruptionReduction: 0.05, maintenanceCost: 600 };
+                t.element.classList.add('has-anti-corruption');
+                this.showNotification('建造反腐机构成功');
+                this.updateUI(); this.updateActionButtons();
+            }
+            determineFactoryType(t) {
+                if (t.resources.coal > 0) return 'coal';
+                if (t.resources.oil > 0) return 'oil';
+                if (t.resources.gas > 0) return 'gas';
+                if (t.resources.water > 0) return 'water';
+                if (t.resources.forest > 0) return 'forest';
+                return 'money';
+            }
+            getFactoryTypeName(type) {
+                const names = { coal: '煤矿', oil: '石油', gas: '天然气', water: '淡水', forest: '木材', money: '资金' };
+                return names[type] || type;
+            }
+            processFactories() {
+                this.territories.forEach(t => {
+                    if (t.owned && t.factory) {
+                        const f = t.factory;
+                        const now = Date.now();
+                        if (now - f.lastProductionTime >= 10000) {
+                            f.lastProductionTime = now;
+                            this.country.money -= f.maintenanceCost;
+                            const prod = this.calculateFactoryProduction(f, t);
+                            if (f.type === 'money') this.country.money += prod;
+                            else this.country.resources[f.type] += prod;
+                            f.production += prod;
+                        }
+                    }
+                });
+            }
+            calculateFactoryProduction(f, t) {
+                let mul = 1.0;
+                if (t.development === '小型城市') mul = 1.2;
+                else if (t.development === '中型城市') mul = 1.5;
+                else if (t.development === '发达城市') mul = 2.0;
+                mul *= this.country.managementEfficiency;
+                return Math.floor(f.level * 10 * mul);
+            }
+            calculateManagementEffects() {
+                const tc = this.country.territoryCount;
+                let baseEff = 1.0 - (tc - 10) * 0.02;
+                let mgmtBoost = 0;
+                this.territories.forEach(t => {
+                    if (t.owned && t.management) mgmtBoost += t.management.efficiencyBoost;
+                });
+                const researchBoost = (this.country.researchLevel - 1) * 0.05;
+                this.country.managementEfficiency = Math.max(0.3, Math.min(1.0, baseEff + mgmtBoost + researchBoost));
+
+                let baseCor = (tc - 5) * 0.01;
+                let corRed = 0;
+                this.territories.forEach(t => {
+                    if (t.owned && t.antiCorruption) corRed += t.antiCorruption.corruptionReduction;
+                });
+                const acRed = (this.country.antiCorruptionLevel - 1) * 0.03;
+                this.country.corruption = Math.max(0, Math.min(0.5, baseCor - corRed - acRed));
+                if (this.country.corruption > 0) {
+                    const loss = Math.floor(this.country.money * this.country.corruption * 0.01);
+                    this.country.money -= loss;
+                    if (Math.random() < 0.1 && loss > 1000) this.showNotification(`腐败损失 $${loss}`);
+                }
+                if (this.country.managementEfficiency < 0.7) {
+                    this.territories.forEach(t => {
+                        if (t.owned) t.satisfaction = Math.max(0.1, t.satisfaction - 0.01);
+                    });
+                }
+            }
+            generateTerrainType(x, y) {
+                const e = this.getElevation(x, y);
+                if (e < 0.4) return 'ocean';
+                if (e < 0.6) return 'grassland';
+                return Math.random() < 0.4 ? 'desert' : 'grassland';
+            }
+            getElevation(x, y) {
+                let v = 0;
+                v += this.ridgedNoise(x * 0.01, y * 0.01, 1) * 0.5;
+                v += this.simpleNoise(x * 0.05, y * 0.05) * 0.3;
+                v += this.simpleNoise(x * 0.1, y * 0.1) * 0.2;
+                return Math.max(0, Math.min(1, v));
+            }
+            ridgedNoise(x, y, octaves) {
+                let v = 0, a = 1, f = 1;
+                for (let i = 0; i < octaves; i++) {
+                    let n = this.simpleNoise(x * f, y * f);
+                    n = 1 - Math.abs(n);
+                    n *= n;
+                    v += n * a; a *= 0.5; f *= 2;
+                }
+                return v;
+            }
+            simpleNoise(x, y) {
+                const X = Math.floor(x) & 255, Y = Math.floor(y) & 255;
+                x -= Math.floor(x); y -= Math.floor(y);
+                const u = this.fade(x), v = this.fade(y);
+                const A = this.p[X] + Y, B = this.p[X + 1] + Y;
+                return this.lerp(v,
+                    this.lerp(u, this.grad(this.p[A], x, y), this.grad(this.p[B], x - 1, y)),
+                    this.lerp(u, this.grad(this.p[A + 1], x, y - 1), this.grad(this.p[B + 1], x - 1, y - 1)));
+            }
+            fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+            lerp(t, a, b) { return a + t * (b - a); }
+            grad(hash, x, y) {
+                const h = hash & 15;
+                const u = h < 8 ? x : y, v = h < 4 ? y : x;
+                return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+            }
+            p = [];
+            initPermutationTable() {
+                const perm = [151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,18,169,200,196,135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,250,124,123,5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,172,9,129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,218,246,97,228,251,34,242,193,238,210,144,12,191,179,162,241,81,51,145,235,249,14,239,107,49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254,138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180];
+                for (let i = 0; i < 256; i++) { this.p[i] = perm[i]; this.p[256 + i] = perm[i]; }
+            }
+            selectTerritory(territory) {
+                if (this.selectedTerritory) this.selectedTerritory.element.classList.remove('selected');
+                this.selectedTerritory = territory;
+                territory.element.classList.add('selected');
+                this.updateTerritoryInfo();
+                this.updateActionButtons();
+            }
+            calculateDevelopment(t) {
+                const dv = t.army + t.population / 10000;
+                if (dv >= 5000) t.development = '发达城市';
+                else if (dv >= 2000) t.development = '中型城市';
+                else if (dv >= 10) t.development = '小型城市';
+                else t.development = '农村';
+            }
+            conquerTerritory() {
+                if (!this.selectedTerritory) return;
+                const t = this.selectedTerritory;
+                if (t.owned) { this.showNotification('已是您的领土'); return; }
+                let cost = t.type === 'grassland' ? 100000 : t.type === 'desert' ? 50000 : 20000;
+                if (t.rebelCountry) {
+                    cost *= 2;
+                    if (this.country.totalArmy < t.army) { this.showNotification('军队不足'); return; }
+                    if (!this.fightBattle(t)) { this.showNotification('攻击失败'); return; }
+                }
+                if (this.country.money >= cost) {
+                    this.country.money -= cost;
+                    if (t.rebelCountry) {
+                        t.rebelCountry.territories.delete(`${t.x},${t.y}`);
+                        t.rebelCountry = null;
+                    }
+                    t.owned = true; t.element.classList.remove('rebel'); t.element.classList.add('owned');
+                    this.country.territoryCount++;
+                    this.showNotification(`占领成功，花费 $${cost}`);
+                    this.updateUI(); this.updateActionButtons();
+                } else this.showNotification('资金不足');
+            }
+            fightBattle(t) {
+                const ap = this.country.totalArmy * (0.5 + Math.random() * 0.5);
+                const dp = t.army * (0.5 + Math.random() * 0.5);
+                if (ap > dp) {
+                    const dmg = Math.floor(ap - dp);
+                    this.country.totalArmy = Math.max(0, this.country.totalArmy - dmg);
+                    t.army = 0; return true;
+                } else {
+                    const dmg = Math.floor(dp - ap);
+                    this.country.totalArmy = Math.max(0, this.country.totalArmy - dmg);
+                    return false;
+                }
+            }
+            spreadPopulationToUnclaimed() {
+                const dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+                this.territories.forEach(t => {
+                    if (t.owned && t.population > 1000 && Math.random() < 0.3) {
+                        const [dx, dy] = dirs[Math.floor(Math.random() * dirs.length)];
+                        const n = this.getTerritory(t.x + dx, t.y + dy);
+                        if (n && !n.owned && !n.rebelCountry && n.type !== 'ocean') {
+                            const tr = Math.floor(t.population * 0.05);
+                            t.population -= tr; n.population += tr;
+                            this.updatePopulationIndicator(t); this.updatePopulationIndicator(n);
+                            n.owned = true; n.element.classList.add('owned');
+                            this.country.territoryCount++;
+                            this.calculateDevelopment(t); this.calculateDevelopment(n);
+                        }
+                    }
+                });
+            }
+            spreadPopulationBetweenOwned() {
+                const dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+                this.territories.forEach(t => {
+                    if (t.owned && t.population > 1500 && Math.random() < 0.4) {
+                        const [dx, dy] = dirs[Math.floor(Math.random() * dirs.length)];
+                        const n = this.getTerritory(t.x + dx, t.y + dy);
+                        if (n && n.owned && !n.rebelCountry) {
+                            const diff = t.population - n.population;
+                            if (diff > 500) {
+                                const tr = Math.floor(diff * 0.03);
+                                t.population -= tr; n.population += tr;
+                                this.updatePopulationIndicator(t); this.updatePopulationIndicator(n);
+                                this.calculateDevelopment(t); this.calculateDevelopment(n);
+                                if (Math.random() < 0.1) this.showNotification(`人口蔓延至(${n.x},${n.y})`);
+                            }
+                        }
+                    }
+                });
+            }
+            checkRebellion() {
+                const visited = new Set(), groups = [];
+                this.territories.forEach(t => {
+                    if (t.owned && t.satisfaction <= 0 && !visited.has(`${t.x},${t.y}`)) {
+                        const g = this.findConnectedGroup(t.x, t.y, visited);
+                        if (g.length >= 1) groups.push(g);
+                    }
+                });
+                groups.forEach(g => this.createRebelCountry(g));
+            }
+            findConnectedGroup(sx, sy, visited) {
+                const g = [], q = [[sx, sy]], dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+                while (q.length) {
+                    const [x, y] = q.shift(), key = `${x},${y}`;
+                    if (visited.has(key)) continue;
+                    const t = this.getTerritory(x, y);
+                    if (t.owned && t.satisfaction <= 0) {
+                        visited.add(key); g.push(t);
+                        for (const [dx, dy] of dirs) q.push([x + dx, y + dy]);
+                    }
+                }
+                return g;
+            }
+            createRebelCountry(territories) {
+                const rc = {
+                    id: this.nextRebelId++,
+                    name: `叛军${this.nextRebelId - 1}`,
+                    color: this.getRandomColor(),
+                    territories: new Set(),
+                    strength: 0
+                };
+                territories.forEach(t => {
+                    t.owned = false; t.rebelCountry = rc;
+                    t.element.classList.remove('owned'); t.element.classList.add('rebel');
+                    rc.territories.add(`${t.x},${t.y}`);
+                    this.country.territoryCount--;
+                    rc.strength += t.army;
+                });
+                this.rebelCountries.push(rc);
+                this.showNotification(`${rc.name}宣布独立`);
+            }
+            rebelSpread() {
+                this.rebelCountries.forEach(rc => {
+                    if (rc.territories.size > 0) {
+                        const keys = Array.from(rc.territories);
+                        const t = this.territories.get(keys[Math.floor(Math.random() * keys.length)]);
+                        if (t) {
+                            const dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+                            for (const [dx, dy] of dirs) {
+                                const n = this.getTerritory(t.x + dx, t.y + dy);
+                                if (n && n.owned && n.satisfaction < 0.5) {
+                                    n.owned = false; n.rebelCountry = rc;
+                                    n.element.classList.remove('owned'); n.element.classList.add('rebel');
+                                    rc.territories.add(`${n.x},${n.y}`);
+                                    this.country.territoryCount--;
+                                    this.showNotification(`${rc.name}蔓延至您的领土`);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            rebelAttack() {
+                this.rebelCountries.forEach(rc => {
+                    if (rc.territories.size > 0 && rc.strength > 0) {
+                        const keys = Array.from(rc.territories);
+                        const t = this.territories.get(keys[Math.floor(Math.random() * keys.length)]);
+                        if (t && t.army > 0) {
+                            const dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+                            for (const [dx, dy] of dirs) {
+                                const n = this.getTerritory(t.x + dx, t.y + dy);
+                                if (n && n.owned) {
+                                    if (t.army > n.army) {
+                                        n.owned = false; n.rebelCountry = rc;
+                                        n.element.classList.remove('owned'); n.element.classList.add('rebel');
+                                        rc.territories.add(`${n.x},${n.y}`);
+                                        this.country.territoryCount--;
+                                        this.showNotification(`${rc.name}占领您的领土`);
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            getRandomColor() {
+                const colors = ['#8b2e2e', '#8b5a2e', '#2e5a8b', '#5a2e8b', '#2e8b5a'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            checkGrasslandResources() {
+                this.territories.forEach(t => {
+                    if (t.type === 'grassland' && t.resources.forest <= 0) {
+                        t.type = 'desert';
+                        t.element.classList.remove('grassland');
+                        t.element.classList.add('desert');
+                    }
+                });
+            }
+            recruitArmy() {
+                if (!this.selectedTerritory || !this.selectedTerritory.owned) return;
+                const count = 10, cost = count * 100;
+                if (this.country.money < cost) { this.showNotification('资金不足'); return; }
+                const now = Date.now();
+                const diff = now - this.selectedTerritory.lastRecruitTime;
+                if (diff < 10000) {
+                    this.selectedTerritory.recruitCount++;
+                    if (this.selectedTerritory.recruitCount > 10) {
+                        this.selectedTerritory.satisfaction = Math.max(0, this.selectedTerritory.satisfaction - 0.1);
+                        this.showNotification('频繁招募导致满意度下降');
+                    }
+                } else this.selectedTerritory.recruitCount = 1;
+                this.country.money -= cost;
+                this.selectedTerritory.lastRecruitTime = now;
+                this.selectedTerritory.army += count;
+                this.country.totalArmy += count;
+                this.calculateDevelopment(this.selectedTerritory);
+                this.showNotification(`招募${count}名士兵`);
+                this.updateUI(); this.updateTerritoryInfo();
+            }
+            collectTax() {
+                if (!this.selectedTerritory || !this.selectedTerritory.owned) return;
+                const now = Date.now();
+                if (now - this.selectedTerritory.lastTaxTime < 30000) { this.showNotification('30秒内只能收税一次'); return; }
+                const income = Math.floor(this.selectedTerritory.population * 0.1);
+                this.country.money += income;
+                this.selectedTerritory.lastTaxTime = now;
+                this.showNotification(`收税成功，获得 $${income}`);
+                this.updateUI(); this.updateTerritoryInfo();
+            }
+            mineResource(resourceType) {
+                if (!this.selectedTerritory || !this.selectedTerritory.owned) return;
+                const res = this.selectedTerritory.resources[resourceType];
+                if (!res || res <= 0) { this.showNotification('无此资源'); return; }
+                const amount = Math.min(10, res);
+                this.selectedTerritory.resources[resourceType] -= amount;
+                this.country.resources[resourceType] += amount;
+                if (resourceType === 'forest' && this.selectedTerritory.type === 'grassland') this.checkGrasslandResources();
+                this.showNotification(`开采 ${amount} 单位 ${this.getResourceName(resourceType)}`);
+                this.updateUI(); this.updateTerritoryInfo();
+            }
+            getResourceName(type) {
+                const names = { coal: '煤矿', oil: '石油', gas: '天然气', water: '淡水', forest: '森林资源' };
+                return names[type] || type;
+            }
+            startGameLoop() {
+                setInterval(() => { this.updateTerritories(); this.updateUI(); }, 10000);
+                setInterval(() => { this.spreadPopulationToUnclaimed(); this.updateUI(); }, 5000);
+                setInterval(() => { this.spreadPopulationBetweenOwned(); this.updateUI(); }, 8000);
+                setInterval(() => { this.checkRebellion(); this.rebelSpread(); this.updateUI(); }, 1000);
+                setInterval(() => { this.rebelAttack(); this.updateUI(); }, 2000);
+                setInterval(() => { this.retireArmy(); this.updateUI(); }, 60000);
+                setInterval(() => { this.processFactories(); this.updateUI(); }, 10000);
+                setInterval(() => { this.calculateManagementEffects(); this.updateUI(); }, 30000);
+                setInterval(() => { this.renderVisibleTerritories(); }, 1000);
+                setInterval(() => {
+                    if (this.joystickActive) {
+                        this.viewport.x -= this.joystickX * 5;
+                        this.viewport.y -= this.joystickY * 5;
+                        this.renderVisibleTerritories();
+                    }
+                }, 50);
+            }
+            updateTerritories() {
+                let tp = 0, ts = 0, ot = 0;
+                this.territories.forEach(t => {
+                    if (t.population > 0) {
+                        const base = this.getBaseGrowth(t.type);
+                        const grow = Math.floor(base * t.satisfaction);
+                        const max = 5000000 * t.satisfaction;
+                        if (t.population < max) t.population += grow; else t.population = Math.max(0, t.population - grow);
+                        if (t.satisfaction < 1.0 && t.recruitCount <= 10) t.satisfaction = Math.min(1.0, t.satisfaction + 0.02);
+                        t.recruitCount = 0;
+                        this.calculateDevelopment(t);
+                        this.updatePopulationIndicator(t);
+                        if (t.owned) { tp += t.population; ts += t.satisfaction; ot++; }
+                    } else this.updatePopulationIndicator(t);
+                });
+                this.country.totalPopulation = tp;
+                this.country.avgSatisfaction = ot > 0 ? ts / ot : 0;
+            }
+            getBaseGrowth(type) {
+                switch (type) {
+                    case 'grassland': return 1000;
+                    case 'desert': return 10;
+                    case 'ocean': return 5;
+                    default: return 0;
+                }
+            }
+            retireArmy() {
+                this.territories.forEach(t => {
+                    if ((t.owned || t.rebelCountry) && t.army > 0) {
+                        const r = Math.min(10, t.army);
+                        t.army -= r;
+                        if (t.owned) this.country.totalArmy -= r;
+                        this.calculateDevelopment(t);
+                    }
+                });
+            }
+            renderVisibleTerritories() {
+                const canvas = document.getElementById('mapCanvas');
+                const container = document.querySelector('.map-container');
+                const cw = container.clientWidth, ch = container.clientHeight;
+                const size = this.territorySize * this.viewport.scale;
+                const sx = Math.floor((-this.viewport.x) / size) - 2;
+                const sy = Math.floor((-this.viewport.y) / size) - 2;
+                const ex = sx + Math.ceil(cw / size) + 4;
+                const ey = sy + Math.ceil(ch / size) + 4;
+                document.getElementById('coordinates').textContent = `坐标: (${sx}, ${sy})`;
+                const current = new Set();
+                for (let x = sx; x <= ex; x++) {
+                    for (let y = sy; y <= ey; y++) {
+                        const t = this.getTerritory(x, y);
+                        current.add(t.element);
+                        const left = x * this.territorySize;
+                        const top = y * this.territorySize;
+                        t.element.style.left = `${left}px`;
+                        t.element.style.top = `${top}px`;
+                        t.element.style.transform = `scale(${this.viewport.scale})`;
+                        t.element.style.transformOrigin = '0 0';
+                        if (!t.element.parentNode) canvas.appendChild(t.element);
+                    }
+                }
+                canvas.querySelectorAll('.territory').forEach(el => {
+                    if (!current.has(el)) canvas.removeChild(el);
+                });
+                canvas.style.transform = `translate(${this.viewport.x}px, ${this.viewport.y}px) scale(${this.viewport.scale})`;
+            }
+            updateUI() {
+                document.getElementById('territory-count').textContent = this.country.territoryCount;
+                document.getElementById('total-population').textContent = this.country.totalPopulation.toLocaleString();
+                document.getElementById('total-army').textContent = this.country.totalArmy;
+                document.getElementById('avg-satisfaction').textContent = `${(this.country.avgSatisfaction * 100).toFixed(1)}%`;
+                document.getElementById('rebel-count').textContent = this.rebelCountries.length;
+                document.getElementById('factory-count').textContent = this.country.factoryCount;
+                document.getElementById('efficiency').textContent = `${(this.country.managementEfficiency * 100).toFixed(0)}%`;
+                document.getElementById('corruption').textContent = `${(this.country.corruption * 100).toFixed(1)}%`;
+                const eff = document.getElementById('efficiency'), cor = document.getElementById('corruption');
+                this.country.managementEfficiency < 0.7 ? eff.classList.add('warning') : eff.classList.remove('warning');
+                this.country.corruption > 0.2 ? cor.classList.add('warning') : cor.classList.remove('warning');
+                document.getElementById('coal-count').textContent = this.country.resources.coal;
+                document.getElementById('oil-count').textContent = this.country.resources.oil;
+                document.getElementById('gas-count').textContent = this.country.resources.gas;
+                document.getElementById('water-count').textContent = this.country.resources.water;
+                document.getElementById('forest-count').textContent = this.country.resources.forest;
+                document.getElementById('money-count').textContent = this.country.money.toLocaleString();
+            }
+            updateTerritoryInfo() {
+                if (!this.selectedTerritory) {
+                    ['selected-territory', 'territory-type', 'territory-population', 'territory-development', 'territory-satisfaction', 'territory-army', 'territory-resources']
+                        .forEach(id => document.getElementById(id).textContent = '-');
+                    ['factory-info', 'management-info', 'research-info', 'anti-corruption-info', 'rebel-info'].forEach(id => document.getElementById(id).style.display = 'none');
+                    return;
+                }
+                const t = this.selectedTerritory;
+                document.getElementById('selected-territory').textContent = `(${t.x}, ${t.y})`;
+                document.getElementById('territory-type').textContent = this.getTerrainName(t.type);
+                document.getElementById('territory-population').textContent = t.population.toLocaleString();
+                document.getElementById('territory-development').textContent = t.development;
+                document.getElementById('territory-satisfaction').textContent = `${(t.satisfaction * 100).toFixed(1)}%`;
+                document.getElementById('territory-army').textContent = t.army;
+                const res = [];
+                for (const [k, v] of Object.entries(t.resources)) if (v > 0) res.push(`${this.getResourceName(k)}: ${v}`);
+                document.getElementById('territory-resources').textContent = res.length ? res.join(', ') : '无';
+                document.getElementById('factory-info').style.display = t.factory ? 'flex' : 'none';
+                if (t.factory) document.getElementById('factory-level').textContent = `${t.factory.level}级 ${this.getFactoryTypeName(t.factory.type)}工厂`;
+                document.getElementById('management-info').style.display = t.management ? 'flex' : 'none';
+                if (t.management) document.getElementById('management-level').textContent = `${t.management.level}级管理建筑`;
+                document.getElementById('research-info').style.display = t.research ? 'flex' : 'none';
+                if (t.research) document.getElementById('research-level').textContent = `${t.research.level}级研究机构`;
+                document.getElementById('anti-corruption-info').style.display = t.antiCorruption ? 'flex' : 'none';
+                if (t.antiCorruption) document.getElementById('anti-corruption-level').textContent = `${t.antiCorruption.level}级反腐机构`;
+                document.getElementById('rebel-info').style.display = t.rebelCountry ? 'flex' : 'none';
+                if (t.rebelCountry) document.getElementById('rebel-country').textContent = t.rebelCountry.name;
+            }
+            getTerrainName(type) {
+                const names = { grassland: '草原', desert: '沙漠', ocean: '海洋' };
+                return names[type] || type;
+            }
+            updateActionButtons() {
+                const s = this.selectedTerritory;
+                const update = (id, cond) => document.getElementById(id).disabled = !cond;
+                update('conquer-btn', s && !s.owned);
+                update('recruit-btn', s && s.owned);
+                update('tax-btn', s && s.owned && s.population > 0);
+                update('build-factory-btn', s && s.owned && !s.factory && s.development !== '荒地' && s.development !== '农村');
+                update('upgrade-factory-btn', s && s.owned && s.factory);
+                update('build-management-btn', s && s.owned && !s.management && s.development !== '荒地');
+                update('build-research-btn', s && s.owned && !s.research && s.development !== '荒地');
+                update('build-anti-corruption-btn', s && s.owned && !s.antiCorruption && s.development !== '荒地');
+                update('mine-coal-btn', s && s.owned && s.resources.coal > 0);
+                update('mine-oil-btn', s && s.owned && s.resources.oil > 0);
+                update('mine-gas-btn', s && s.owned && s.resources.gas > 0);
+                update('harvest-water-btn', s && s.owned && s.resources.water > 0);
+                update('harvest-forest-btn', s && s.owned && s.resources.forest > 0);
+            }
+            setupEventListeners() {
+                this.initPermutationTable();
+                const bind = (id, fn) => document.getElementById(id).addEventListener('click', () => fn.call(this));
+                bind('conquer-btn', this.conquerTerritory);
+                bind('recruit-btn', this.recruitArmy);
+                bind('tax-btn', this.collectTax);
+                bind('build-factory-btn', this.buildFactory);
+                bind('upgrade-factory-btn', this.upgradeFactory);
+                bind('build-management-btn', this.buildManagement);
+                bind('build-research-btn', this.buildResearch);
+                bind('build-anti-corruption-btn', this.buildAntiCorruption);
+                bind('mine-coal-btn', () => this.mineResource('coal'));
+                bind('mine-oil-btn', () => this.mineResource('oil'));
+                bind('mine-gas-btn', () => this.mineResource('gas'));
+                bind('harvest-water-btn', () => this.mineResource('water'));
+                bind('harvest-forest-btn', () => this.mineResource('forest'));
+
+                const joyArea = document.getElementById('joystick-area');
+                const joy = document.getElementById('joystick');
+                joyArea.addEventListener('touchstart', e => { e.preventDefault(); this.joystickActive = true; this.updateJoystick(e.touches[0].clientX, e.touches[0].clientY, joyArea, joy); });
+                joyArea.addEventListener('touchmove', e => { e.preventDefault(); if (this.joystickActive) this.updateJoystick(e.touches[0].clientX, e.touches[0].clientY, joyArea, joy); });
+                joyArea.addEventListener('touchend', e => { e.preventDefault(); this.joystickActive = false; this.joystickX = 0; this.joystickY = 0; joy.style.transform = 'translate(0,0)'; });
+                document.addEventListener('touchmove', e => { if (e.target.closest('.map-container') || e.target.closest('.joystick-area')) e.preventDefault(); }, { passive: false });
+                window.addEventListener('resize', () => this.renderVisibleTerritories());
+            }
+            updateJoystick(cx, cy, area, joy) {
+                const rect = area.getBoundingClientRect();
+                const cx1 = rect.left + rect.width / 2, cy1 = rect.top + rect.height / 2;
+                let dx = cx - cx1, dy = cy - cy1;
+                const max = rect.width / 3, dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > max) { dx = (dx / dist) * max; dy = (dy / dist) * max; }
+                joy.style.transform = `translate(${dx}px,${dy}px)`;
+                this.joystickX = dx / max; this.joystickY = dy / max;
+            }
+            showNotification(msg) {
+                const n = document.getElementById('notification');
+                n.textContent = msg; n.classList.add('show');
+                setTimeout(() => n.classList.remove('show'), 3000);
+            }
+        }
+        window.addEventListener('load', () => new TerritorySimulator());
+    </script>
+</body>
+</html>
