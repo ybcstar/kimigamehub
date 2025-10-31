@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>不给糖就捣蛋</title>
+    <style>
+        body{
+            margin:0;
+            padding:0;
+            background:linear-gradient(135deg,#1a1a2e,#16213e);
+            font-family:Arial, sans-serif;
+            overflow:hidden;
+            height:100vh;
+            user-select:none;
+        }
+        #gameContainer{
+            position:relative;
+            width:100vw;
+            height:100vh;
+        }
+        #scoreBoard,#lives{
+            position:absolute;
+            top:20px;
+            color:#fff;
+            font-size:24px;
+            font-weight:bold;
+            text-shadow:0 0 4px rgba(0,0,0,.6);
+        }
+        #scoreBoard{left:20px;color:orange;}
+        #lives{right:20px;color:red;}
+        /* 新增：护盾状态提示 */
+        #shield{
+            position:absolute;
+            top:70px;
+            left:20px;
+            color:#0f0;
+            font-size:20px;
+            text-shadow:0 0 4px rgba(0,0,0,.6);
+        }
+        .item{
+            position:absolute;
+            font-size:42px;
+            cursor:pointer;
+            transition:opacity .1s linear;
+            transform:scale(0.75);     /* 全局 scale *= 0.75 */
+        }
+        .float{
+            animation:float 3s ease-in-out infinite;
+        }
+        @keyframes float{
+            0%,100%{transform:scale(0.75) translateY(0);}
+            50%{transform:scale(0.75) translateY(-8px);}
+        }
+        #gameOver{
+            position:absolute;
+            top:50%;left:50%;
+            transform:translate(-50%,-50%);
+            background:rgba(0,0,0,.85);
+            color:#fff;
+            padding:30px 40px;
+            border-radius:10px;
+            text-align:center;
+            display:none;
+        }
+        #gameOver h2{color:orange;margin-bottom:15px;}
+        #restartBtn{
+            background:orange;
+            color:#000;
+            border:none;
+            padding:10px 20px;
+            font-size:18px;
+            border-radius:5px;
+            cursor:pointer;
+            margin-top:15px;
+        }
+        #restartBtn:hover{background:darkorange;}
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="scoreBoard">得分:<span id="score">0.00</span></div>
+        <div id="lives">生命:<span id="lifeCount">❤️❤️❤️</span></div>
+        <div id="shield">护盾:<span id="shieldStatus">无</span></div>
+        <div id="gameOver">
+            <h2>游戏结束！</h2>
+            <p>最终得分:<span id="finalScore">0.00</span></p>
+            <button id="restartBtn">重新开始</button>
+        </div>
+    </div>
+
+    <script>
+        let score=0, lives=3, gameRunning=true;
+        let shieldActive=false;          // 是否处于护盾状态
+        const emojis={candy1:'🍬',candy2:'🍭',choco:'🍫',ghost:'👻',pumpkin:'🎃'};
+        const basePts={candy1:5,candy2:5,choco:20,ghost:0,pumpkin:0};
+        const container=document.getElementById('gameContainer');
+        const scoreEl=document.getElementById('score');
+        const lifeEl=document.getElementById('lifeCount');
+        const shieldEl=document.getElementById('shieldStatus');
+        const gameOverEl=document.getElementById('gameOver');
+        const finalScoreEl=document.getElementById('finalScore');
+        const restartBtn=document.getElementById('restartBtn');
+
+        function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+        function choice(arr){return arr[Math.floor(Math.random()*arr.length)];}
+        function shuffle(arr){
+            for(let i=arr.length-1;i>0;i--){
+                const j=Math.floor(Math.random()*(i+1));
+                [arr[i],arr[j]]=[arr[j],arr[i]];
+            }
+            return arr;
+        }
+        function updateLives(){lifeEl.textContent='❤️'.repeat(lives);}
+        function updateShield(status){shieldEl.textContent=status?'已激活':'无';}
+
+        function gameOver(){
+            gameRunning=false;
+            finalScoreEl.textContent=score.toFixed(2);
+            gameOverEl.style.display='block';
+        }
+
+        function spawnBatch(){
+            if(!gameRunning)return;
+            const n=rand(1,6);
+            // 加入南瓜道具
+            const types=['candy1','candy2','choco','ghost','pumpkin'];
+            for(let i=0;i<n;i++){
+                const t=choice(types);
+                createItem(t);
+            }
+        }
+
+        function createItem(type){
+            const el=document.createElement('div');
+            el.className='item';
+            el.textContent=emojis[type];
+            el.dataset.type=type;
+            el.dataset.base=basePts[type];
+
+            const maxX=window.innerWidth-50;
+            const maxY=window.innerHeight-50;
+            let x=rand(0,maxX),y=rand(0,maxY);
+            el.style.left=x+'px';
+            el.style.top=y+'px';
+
+            if(type==='ghost'){
+                ghostAI(el,x,y,maxX,maxY);
+            }else if(type!=='pumpkin'){
+                el.classList.add('float');
+            }
+
+            // 透明度递减
+            const lifetime= type==='ghost'? rand(10000,14000): rand(4000,7000);
+            let start=performance.now();
+            const fade=()=>{
+                const now=performance.now();
+                const p=(now-start)/lifetime;
+                if(p>=1){el.remove();return;}
+                el.style.opacity=1-p;
+                requestAnimationFrame(fade);
+            };requestAnimationFrame(fade);
+
+            // 点击逻辑
+            el.addEventListener('click',e=>{
+                e.stopPropagation();
+                const op=parseFloat(el.style.opacity)||1;
+                if(type==='ghost'){
+                    if(shieldActive){
+                        // 消耗护盾，不扣血
+                        shieldActive=false;
+                        updateShield(false);
+                    }else{
+                        lives--;
+                        updateLives();
+                        if(lives<=0)gameOver();
+                    }
+                }else if(type==='pumpkin'){
+                    // 激活护盾
+                    shieldActive=true;
+                    updateShield(true);
+                }else{
+                    score+=basePts[type]*op;
+                    scoreEl.textContent=score.toFixed(2);
+                }
+                el.remove();
+            });
+
+            container.appendChild(el);
+        }
+
+        function ghostAI(el,startX,startY,maxX,maxY){
+            let currentX=startX,currentY=startY;
+            let targetIdx=0;
+            let targets=[];
+
+            function generateTargets(){
+                targets=[];
+                document.querySelectorAll('.item').forEach(item=>{
+                    if(item.dataset.type!=='ghost'){
+                        const r=item.getBoundingClientRect();
+                        const cx=r.left+r.width/2;
+                        const cy=r.top+r.height/2;
+                        const offX=rand(-10,11);
+                        const offY=rand(-10,11);
+                        targets.push({x:cx+offX,y:cy+offY});
+                    }
+                });
+                shuffle(targets);
+                targetIdx=0;
+            }
+
+            function moveStep(){
+                if(!document.body.contains(el))return;
+                if(targets.length===0||targetIdx>=targets.length){
+                    generateTargets();
+                }
+                if(targets.length===0){
+                    currentX+=rand(-2,3);
+                    currentY+=rand(-2,3);
+                }else{
+                    const tgt=targets[targetIdx];
+                    const dx=tgt.x-currentX;
+                    const dy=tgt.y-currentY;
+                    const dist=Math.hypot(dx,dy);
+                    if(dist<10){
+                        targetIdx++;
+                    }else{
+                        const speed=1.5;
+                        currentX+=(dx/dist)*speed;
+                        currentY+=(dy/dist)*speed;
+                    }
+                }
+                if(currentX<0)currentX=0;
+                if(currentX>maxX)currentX=maxX;
+                if(currentY<0)currentY=0;
+                if(currentY>maxY)currentY=maxY;
+                el.style.left=currentX+'px';
+                el.style.top=currentY+'px';
+                requestAnimationFrame(moveStep);
+            }
+            generateTargets();
+            requestAnimationFrame(moveStep);
+        }
+
+        function restart(){
+            score=0;lives=3;gameRunning=true;
+            shieldActive=false;
+            scoreEl.textContent='0.00';
+            updateLives();
+            updateShield(false);
+            gameOverEl.style.display='none';
+            document.querySelectorAll('.item').forEach(i=>i.remove());
+            run();
+        }
+        restartBtn.addEventListener('click',restart);
+
+        function run(){
+            const next=()=>{
+                if(!gameRunning)return;
+                spawnBatch();
+                setTimeout(next,rand(1000,2500));
+            };next();
+        }
+        run();
+    </script>
+</body>
+</html>
