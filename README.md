@@ -40,12 +40,14 @@ python -m http.server 8000
 | 俄罗斯方块 | YbcStar | GPL-3.0 | 建议键盘操作 |
 | 比特币矿区 | YbcStar | GPL-3.0 | 点击放置 |
 | 国家领土模拟器 | PYSちᩚ丶 | GPL-3.0 | 策略休闲 |
+| 敲鸡蛋 | YbcStar | GPL-3.0 | 点击放置 |
 
 | Game | Author | License | Note |
 |---|---|---|---|
 | Tetris | YbcStar | GPL-3.0 | Keyboard recommended |
 | Bitcoin Miner | YbcStar | GPL-3.0 | Idle clicker |
 | Territory Simulator | PYSちᩚ丶 | GPL-3.0 | Strategy casual |
+| Egg clicker | YbcStar | GPL-3.0 | Idle clicker |
 
 所有游戏均为单文件 HTML，可在 `games/iframe/`（框架版）或 `games/main/`（全屏版）直接取用。  
 Every game is a single HTML file; pick it from `games/iframe/` (embedded) or `games/main/` (full-screen).
