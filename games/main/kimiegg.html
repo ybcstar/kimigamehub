@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🥚 敲鸡蛋大作战 - 10亿次点击挑战</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: #333;
+        }
+
+        .game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .restart-btn-top {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #e74c3c;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .restart-btn-top:hover {
+            background: #e74c3c;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .stats-bar {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            text-align: center;
+        }
+
+        .stat-item {
+            padding: 10px;
+            border-radius: 10px;
+            background: linear-gradient(145deg, #f0f0f0, #ffffff);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            font-family: 'Courier New', monospace;
+        }
+
+        .clicks-stat { color: #e74c3c; }
+        .gold-stat { color: #f39c12; }
+        .cps-stat { color: #3498db; }
+
+        .egg-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .egg-container {
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .egg-container:active {
+            transform: scale(0.95);
+        }
+
+        .egg {
+            width: 200px;
+            height: 260px;
+            background: linear-gradient(145deg, #fff5e6 0%, #ffe4c4 50%, #ffdbac 100%);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            box-shadow: 
+                0 20px 60px rgba(0,0,0,0.3),
+                inset -20px -20px 60px rgba(0,0,0,0.1),
+                inset 20px 20px 40px rgba(255,255,255,0.8);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            transition: all 0.3s ease;
+        }
+
+        .egg::before {
+            content: '';
+            position: absolute;
+            top: 20%;
+            left: 20%;
+            width: 30%;
+            height: 20%;
+            background: radial-gradient(ellipse at center, rgba(255,255,255,0.8) 0%, transparent 70%);
+            border-radius: 50%;
+            transform: rotate(-45deg);
+        }
+
+        .egg.cracked { animation: crack 0.3s ease; }
+        .egg.shine { animation: shine 0.5s ease; }
+
+        @keyframes crack {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg) scale(0.98); }
+            75% { transform: rotate(5deg) scale(0.98); }
+        }
+
+        @keyframes shine {
+            0% { filter: brightness(1); }
+            50% { filter: brightness(1.3) drop-shadow(0 0 20px gold); }
+            100% { filter: brightness(1); }
+        }
+
+        .click-effect {
+            position: absolute;
+            pointer-events: none;
+            font-weight: bold;
+            font-size: 20px;
+            animation: floatUp 1s ease-out forwards;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+
+        .click-effect.critical {
+            color: #ff6b6b;
+            font-size: 32px;
+            font-weight: 900;
+        }
+
+        .click-effect.normal {
+            color: #ffd93d;
+        }
+
+        .click-effect.error {
+            color: #e74c3c;
+            font-size: 18px;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-80px) scale(1.2); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            max-width: 400px;
+            height: 30px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 15px;
+            margin-top: 30px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 15px;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .details-panel {
+            background: rgba(255,255,255,0.9);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .detail-item {
+            display: inline-block;
+            margin: 5px 15px;
+            padding: 5px 10px;
+            background: #f0f0f0;
+            border-radius: 20px;
+        }
+
+        .shop-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .shop-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .upgrade-card {
+            background: linear-gradient(145deg, #f5f5f5, #ffffff);
+            border-radius: 15px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upgrade-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .upgrade-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .upgrade-name {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .upgrade-level {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .upgrade-value {
+            font-size: 14px;
+            color: #27ae60;
+            font-weight: bold;
+            margin-bottom: 5px;
+            padding: 4px 8px;
+            background: rgba(39, 174, 96, 0.1);
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .upgrade-next {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .upgrade-cost {
+            font-size: 14px;
+            font-weight: bold;
+            color: #f39c12;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            justify-content: center;
+            padding: 5px;
+            background: rgba(243, 156, 18, 0.1);
+            border-radius: 8px;
+        }
+
+        .upgrade-desc {
+            font-size: 10px;
+            color: #999;
+            margin-top: 8px;
+            line-height: 1.3;
+        }
+
+        .timer-section {
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .timer-label {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .timer-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #00ff88;
+            text-shadow: 0 0 10px rgba(0,255,136,0.5);
+        }
+
+        .victory-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            flex-direction: column;
+        }
+
+        .victory-modal.show {
+            display: flex;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .victory-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 50px;
+            border-radius: 30px;
+            text-align: center;
+            color: white;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            max-width: 500px;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .victory-title {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .victory-time {
+            font-size: 24px;
+            margin-bottom: 30px;
+            color: #ffd700;
+        }
+
+        .restart-btn {
+            background: #fff;
+            color: #667eea;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.3s;
+        }
+
+        .restart-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            border-radius: 50%;
+            animation: particle 1s ease-out forwards;
+        }
+
+        @keyframes particle {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(0);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .stats-bar { grid-template-columns: 1fr; }
+            .shop-grid { grid-template-columns: 1fr; }
+            .egg { width: 150px; height: 200px; }
+            .header { flex-direction: column; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1 style="color: white; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">🥚 敲鸡蛋大作战</h1>
+            <button class="restart-btn-top" onclick="if(typeof game !== 'undefined') game.hardReset(); else alert('游戏加载中，请稍候');">🔄 重新开始</button>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-label">点击次数</div>
+                <div class="stat-value clicks-stat" id="clickCount">0 / 1,000,000,000</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">金币</div>
+                <div class="stat-value gold-stat" id="gold">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">每秒点击</div>
+                <div class="stat-value cps-stat" id="cps">0</div>
+            </div>
+        </div>
+
+        <div class="details-panel">
+            <span class="detail-item">👆 点击强度: <strong id="clickPowerDisplay">1</strong> 次/击</span>
+            <span class="detail-item">🎯 暴击率: <strong id="critChanceDisplay">0%</strong></span>
+            <span class="detail-item">⚡ 暴击强度: +<strong id="critPowerDisplay">0</strong> 次</span>
+            <span class="detail-item">🤖 自动间隔: <strong id="autoIntervalDisplay">∞</strong> 秒</span>
+            <span class="detail-item">💰 金币倍率: x<strong id="goldMultDisplay">1</strong></span>
+        </div>
+
+        <div class="egg-section">
+            <div class="egg-container" id="eggContainer">
+                <div class="egg" id="egg">🥚</div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar" style="width: 0%">0%</div>
+            </div>
+        </div>
+
+        <div class="shop-section">
+            <div class="shop-title">🏪 升级商店</div>
+            <div class="shop-grid" id="shopGrid"></div>
+        </div>
+
+        <div class="timer-section">
+            <div class="timer-label">⏱️ 速通计时器</div>
+            <div class="timer-value" id="timer">00:00:00.000</div>
+        </div>
+    </div>
+
+    <div class="victory-modal" id="victoryModal">
+        <div class="victory-content">
+            <div class="victory-title">🎉 恭喜通关!</div>
+            <div class="victory-time">完成时间: <span id="finalTime">00:00:00</span></div>
+            <button class="restart-btn" onclick="game.restart()">🎮 再玩一次（保留存档）</button>
+        </div>
+    </div>
+
+    <script>
+        class EggClickerGame {
+            constructor() {
+                this.targetClicks = 1000000000;
+                this.clicks = 0;
+                this.gold = 0;
+                this.startTime = null;
+                this.elapsedTime = 0;
+                this.isRunning = false;
+                this.isFinished = false;
+                
+                this.clickPower = 1;
+                this.autoClickInterval = Infinity;
+                this.critChance = 0;
+                this.critPower = 0;
+                this.goldMultiplier = 1;
+                
+                this.upgrades = {
+                    clickPower: {
+                        id: 'clickPower',
+                        name: '点击强度',
+                        icon: '💪',
+                        baseCost: 10,
+                        costMultiplier: 1.5,
+                        level: 0,
+                        getValue: (level) => 1 + level,
+                        desc: '每次点击算作更多次',
+                        unit: '次/击'
+                    },
+                    autoClick: {
+                        id: 'autoClick',
+                        name: '自动敲击',
+                        icon: '🤖',
+                        baseCost: 50,
+                        costMultiplier: 1.5,
+                        level: 0,
+                        getInterval: (level) => level === 0 ? Infinity : Math.max(0.05, 2 / (level + 1)),
+                        getValue: (level) => {
+                            if (level === 0) return '∞';
+                            const interval = Math.max(0.05, 2 / (level + 1));
+                            return interval.toFixed(2) + 's';
+                        },
+                        desc: '自动点击间隔（秒/次）',
+                        unit: '秒'
+                    },
+                    critChance: {
+                        id: 'critChance',
+                        name: '暴击几率',
+                        icon: '🎯',
+                        baseCost: 100,
+                        costMultiplier: 1.6,
+                        level: 0,
+                        getValue: (level) => {
+                            let chance = level * 2;
+                            return chance > 100 ? '100% (+' + (Math.floor((chance - 100) / 10)) + '强度)' : chance + '%';
+                        },
+                        desc: '超过100%转暴击强度',
+                        unit: '%'
+                    },
+                    critPower: {
+                        id: 'critPower',
+                        name: '暴击强度',
+                        icon: '⚡',
+                        baseCost: 200,
+                        costMultiplier: 1.7,
+                        level: 0,
+                        getValue: (level) => '+' + (level * 2),
+                        desc: '暴击时额外点击次数',
+                        unit: '次'
+                    },
+                    goldMult: {
+                        id: 'goldMult',
+                        name: '金币倍率',
+                        icon: '💰',
+                        baseCost: 500,
+                        costMultiplier: 1.8,
+                        level: 0,
+                        getValue: (level) => 'x' + (1 + level * 0.5).toFixed(1),
+                        desc: '金币收入倍率',
+                        unit: '倍'
+                    }
+                };
+                
+                this.lastAutoClick = 0;
+                this.init();
+            }
+            
+            init() {
+                document.getElementById('eggContainer').addEventListener('click', (e) => this.handleClick(e));
+                this.renderShop();
+                this.gameLoop();
+                this.startTime = Date.now();
+                this.isRunning = true;
+                setInterval(() => this.save(), 5000);
+                this.load();
+            }
+            
+            handleClick(event) {
+                if (this.isFinished) return;
+                
+                let clickCount = this.clickPower;
+                let isCrit = false;
+                
+                if (Math.random() * 100 < this.critChance) {
+                    isCrit = true;
+                    clickCount += this.critPower;
+                }
+                
+                const goldEarned = clickCount * this.goldMultiplier;
+                
+                this.clicks += clickCount;
+                this.gold += goldEarned;
+                
+                this.showClickEffect(event, clickCount, goldEarned, isCrit);
+                this.animateEgg(isCrit);
+                this.createParticles(event.clientX, event.clientY);
+                
+                if (this.clicks >= this.targetClicks) {
+                    this.victory();
+                }
+                
+                this.updateUI();
+            }
+            
+            autoClick() {
+                if (this.isFinished || this.autoClickInterval === Infinity) return;
+                
+                const now = Date.now();
+                if (now - this.lastAutoClick >= this.autoClickInterval * 1000) {
+                    this.lastAutoClick = now;
+                    
+                    let clickCount = this.clickPower;
+                    
+                    if (Math.random() * 100 < this.critChance) {
+                        clickCount += this.critPower;
+                    }
+                    
+                    this.clicks += clickCount;
+                    this.gold += clickCount * this.goldMultiplier;
+                    
+                    const rect = document.getElementById('eggContainer').getBoundingClientRect();
+                    this.showClickEffect(null, clickCount, clickCount * this.goldMultiplier, false);
+                    this.animateEgg(false);
+                    
+                    if (this.clicks >= this.targetClicks) {
+                        this.victory();
+                    }
+                }
+            }
+            
+            showClickEffect(event, clickCount, goldEarned, isCrit) {
+                const effect = document.createElement('div');
+                effect.className = `click-effect ${isCrit ? 'critical' : 'normal'}`;
+                
+                if (isCrit) {
+                    effect.innerHTML = `暴击!<br>+${this.formatNumber(clickCount)}次<br>💰${this.formatNumber(Math.floor(goldEarned))}`;
+                } else {
+                    effect.innerHTML = `+${this.formatNumber(clickCount)}<br>💰${this.formatNumber(Math.floor(goldEarned))}`;
+                }
+                
+                const rect = document.getElementById('eggContainer').getBoundingClientRect();
+                const x = event ? event.clientX - rect.left : rect.width / 2 + (Math.random() - 0.5) * 60;
+                const y = event ? event.clientY - rect.top : rect.height / 2 + (Math.random() - 0.5) * 60;
+                
+                effect.style.left = x + 'px';
+                effect.style.top = y + 'px';
+                
+                document.getElementById('eggContainer').appendChild(effect);
+                setTimeout(() => effect.remove(), 1000);
+            }
+            
+            showErrorEffect(element, message) {
+                const effect = document.createElement('div');
+                effect.className = 'click-effect error';
+                effect.textContent = message;
+                
+                const rect = element.getBoundingClientRect();
+                const containerRect = document.querySelector('.game-container').getBoundingClientRect();
+                
+                effect.style.left = (rect.left - containerRect.left + rect.width / 2 - 40) + 'px';
+                effect.style.top = (rect.top - containerRect.top) + 'px';
+                
+                document.querySelector('.game-container').appendChild(effect);
+                setTimeout(() => effect.remove(), 1000);
+            }
+            
+            animateEgg(isCrit) {
+                const egg = document.getElementById('egg');
+                egg.classList.add('cracked');
+                if (isCrit) egg.classList.add('shine');
+                
+                setTimeout(() => {
+                    egg.classList.remove('cracked', 'shine');
+                }, 300);
+            }
+            
+            createParticles(x, y) {
+                for (let i = 0; i < 5; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.width = (Math.random() * 10 + 5) + 'px';
+                    particle.style.height = particle.style.width;
+                    particle.style.background = `hsl(${Math.random() * 60 + 30}, 100%, 50%)`;
+                    particle.style.left = x + 'px';
+                    particle.style.top = y + 'px';
+                    particle.style.setProperty('--tx', (Math.random() - 0.5) * 200 + 'px');
+                    particle.style.setProperty('--ty', (Math.random() - 0.5) * 200 + 'px');
+                    
+                    document.body.appendChild(particle);
+                    setTimeout(() => particle.remove(), 1000);
+                }
+            }
+            
+            buyUpgrade(upgradeId, element) {
+                const upgrade = this.upgrades[upgradeId];
+                const cost = this.getUpgradeCost(upgrade);
+                
+                if (this.gold >= cost) {
+                    this.gold -= cost;
+                    upgrade.level++;
+                    this.recalculateStats();
+                    this.renderShop();
+                    this.updateUI();
+                } else {
+                    const need = cost - this.gold;
+                    this.showErrorEffect(element, `还差 ${this.formatNumber(need)} 金币!`);
+                }
+            }
+            
+            recalculateStats() {
+                this.clickPower = 1 + this.upgrades.clickPower.level;
+                
+                const autoLevel = this.upgrades.autoClick.level;
+                this.autoClickInterval = autoLevel === 0 ? Infinity : Math.max(0.05, 2 / (autoLevel + 1));
+                
+                let rawCritChance = this.upgrades.critChance.level * 2;
+                if (rawCritChance > 100) {
+                    this.critChance = 100;
+                    const excessCrit = rawCritChance - 100;
+                    this.critPower = (this.upgrades.critPower.level * 2) + Math.floor(excessCrit / 10);
+                } else {
+                    this.critChance = rawCritChance;
+                    this.critPower = this.upgrades.critPower.level * 2;
+                }
+                
+                this.goldMultiplier = 1 + this.upgrades.goldMult.level * 0.5;
+            }
+            
+            getUpgradeCost(upgrade) {
+                return Math.floor(upgrade.baseCost * Math.pow(upgrade.costMultiplier, upgrade.level));
+            }
+            
+            renderShop() {
+                const grid = document.getElementById('shopGrid');
+                grid.innerHTML = '';
+                
+                Object.values(this.upgrades).forEach(upgrade => {
+                    const cost = this.getUpgradeCost(upgrade);
+                    
+                    const card = document.createElement('div');
+                    card.className = 'upgrade-card';
+                    
+                    const currentValue = upgrade.getValue(upgrade.level);
+                    const nextValue = upgrade.getValue(upgrade.level + 1);
+                    
+                    card.innerHTML = `
+                        <div class="upgrade-icon">${upgrade.icon}</div>
+                        <div class="upgrade-name">${upgrade.name}</div>
+                        <div class="upgrade-level">当前等级: ${upgrade.level}</div>
+                        <div class="upgrade-value">${currentValue} ${upgrade.unit}</div>
+                        <div class="upgrade-next">升级后: ${nextValue} ${upgrade.unit}</div>
+                        <div class="upgrade-cost">💰 ${this.formatNumber(cost)}</div>
+                        <div class="upgrade-desc">${upgrade.desc}</div>
+                    `;
+                    
+                    card.addEventListener('click', (e) => this.buyUpgrade(upgrade.id, card));
+                    
+                    grid.appendChild(card);
+                });
+            }
+            
+            updateUI() {
+                document.getElementById('clickCount').textContent = 
+                    `${this.formatNumber(Math.floor(this.clicks))} / ${this.formatNumber(this.targetClicks)}`;
+                document.getElementById('gold').textContent = this.formatNumber(Math.floor(this.gold));
+                
+                let cps = 0;
+                if (this.autoClickInterval !== Infinity && this.autoClickInterval > 0) {
+                    cps = 1 / this.autoClickInterval;
+                }
+                const expectedClickPower = this.clickPower + (this.critChance / 100) * this.critPower;
+                const totalCPS = cps * expectedClickPower;
+                document.getElementById('cps').textContent = totalCPS.toFixed(1) + '/s';
+                
+                document.getElementById('clickPowerDisplay').textContent = this.clickPower;
+                document.getElementById('critChanceDisplay').textContent = this.critChance + '%';
+                document.getElementById('critPowerDisplay').textContent = this.critPower;
+                document.getElementById('autoIntervalDisplay').textContent = 
+                    this.autoClickInterval === Infinity ? '∞' : this.autoClickInterval.toFixed(2);
+                document.getElementById('goldMultDisplay').textContent = this.goldMultiplier.toFixed(1);
+                
+                const progress = Math.min((this.clicks / this.targetClicks) * 100, 100);
+                document.getElementById('progressBar').style.width = progress + '%';
+                document.getElementById('progressBar').textContent = progress.toFixed(6) + '%';
+                
+                if (this.isRunning && !this.isFinished) {
+                    this.elapsedTime = Date.now() - this.startTime;
+                }
+                document.getElementById('timer').textContent = this.formatTime(this.elapsedTime);
+            }
+            
+            gameLoop() {
+                setInterval(() => {
+                    this.autoClick();
+                    this.updateUI();
+                }, 1000 / 60);
+            }
+            
+            victory() {
+                this.isFinished = true;
+                this.isRunning = false;
+                document.getElementById('finalTime').textContent = this.formatTime(this.elapsedTime);
+                document.getElementById('victoryModal').classList.add('show');
+            }
+            
+            restart() {
+                this.clicks = 0;
+                this.gold = 0;
+                this.startTime = Date.now();
+                this.elapsedTime = 0;
+                this.isRunning = true;
+                this.isFinished = false;
+                this.lastAutoClick = 0;
+                
+                Object.values(this.upgrades).forEach(u => {
+                    u.level = 0;
+                });
+                
+                this.recalculateStats();
+                
+                document.getElementById('victoryModal').classList.remove('show');
+                this.renderShop();
+                this.updateUI();
+                
+                localStorage.removeItem('eggClickerSave');
+            }
+            
+            hardReset() {
+                const confirmed = confirm(
+                    '⚠️ 警告！\n\n' +
+                    '确定要重新开始游戏吗？\n' +
+                    '这将清除所有存档数据，包括：\n' +
+                    '• 当前点击进度\n' +
+                    '• 所有金币\n' +
+                    '• 所有升级等级\n\n' +
+                    '此操作不可撤销！'
+                );
+                
+                if (confirmed) {
+                    localStorage.removeItem('eggClickerSave');
+                    // 使用多种方式确保刷新
+                    window.location.href = window.location.href;
+                    // 备用方案
+                    setTimeout(function() {
+                        window.location.reload(true);
+                    }, 100);
+                }
+            }
+            
+            formatNumber(num) {
+                if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+                if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+                if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+                return Math.floor(num).toString();
+            }
+            
+            formatTime(ms) {
+                const totalSeconds = Math.floor(ms / 1000);
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                const milliseconds = Math.floor((ms % 1000) / 10);
+                
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+            }
+            
+            save() {
+                const saveData = {
+                    clicks: this.clicks,
+                    gold: this.gold,
+                    elapsedTime: this.elapsedTime,
+                    startTime: this.startTime,
+                    upgrades: Object.fromEntries(
+                        Object.entries(this.upgrades).map(([k, v]) => [k, { level: v.level }])
+                    )
+                };
+                localStorage.setItem('eggClickerSave', JSON.stringify(saveData));
+            }
+            
+            load() {
+                const saved = localStorage.getItem('eggClickerSave');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        this.clicks = data.clicks || 0;
+                        this.gold = data.gold || 0;
+                        this.elapsedTime = data.elapsedTime || 0;
+                        this.startTime = Date.now() - this.elapsedTime;
+                        
+                        if (data.upgrades) {
+                            Object.entries(data.upgrades).forEach(([key, val]) => {
+                                if (this.upgrades[key]) {
+                                    this.upgrades[key].level = val.level || 0;
+                                }
+                            });
+                        }
+                        
+                        this.recalculateStats();
+                        this.updateUI();
+                    } catch (e) {
+                        console.error('加载存档失败:', e);
+                    }
+                }
+            }
+        }
+        
+        // 确保在DOM加载完成后初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                window.game = new EggClickerGame();
+            });
+        } else {
+            window.game = new EggClickerGame();
+        }
+    </script>
+</body>
+</html>
