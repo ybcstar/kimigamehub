@@ -1,0 +1,4594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rou鸽Like:Evolve 1.3.2 - 无Boss版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        html, body {
+            background: #1a1a2e;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+        
+        #gameCanvas {
+            display: block;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 14px;
+            z-index: 10;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+        
+        .health-bar {
+            width: 200px;
+            height: 20px;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #ee5a24);
+            transition: width 0.3s;
+        }
+        
+        #joystick-zone {
+            position: absolute;
+            bottom: 50px;
+            left: 50px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255,255,255,0.1);
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            touch-action: none;
+            z-index: 50;
+        }
+        
+        #joystick-knob {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            pointer-events: none;
+        }
+        
+        #attack-btn {
+            position: absolute;
+            bottom: 50px;
+            right: 50px;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, rgba(255,107,107,0.9) 0%, rgba(238,90,36,0.9) 100%);
+            border: 3px solid rgba(255,255,255,0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 15px rgba(255,107,107,0.5);
+            z-index: 50;
+            touch-action: none;
+            transition: transform 0.1s;
+        }
+        
+        #attack-btn:active {
+            transform: scale(0.9);
+        }
+        
+        #attack-btn.cooldown {
+            background: radial-gradient(circle, rgba(100,100,100,0.8) 0%, rgba(80,80,80,0.8) 100%);
+        }
+        
+        /* 主动技能按钮 */
+        .skill-btn {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 24px;
+            z-index: 50;
+            touch-action: none;
+            transition: transform 0.1s;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        
+        .skill-btn:active {
+            transform: scale(0.9);
+        }
+        
+        .skill-btn.cooldown {
+            opacity: 0.6;
+        }
+        
+        .skill-btn .cooldown-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0,0,0,0.7);
+            transition: height 0.1s linear;
+        }
+        
+        .skill-btn .cooldown-text {
+            position: absolute;
+            font-size: 14px;
+            z-index: 2;
+        }
+        
+        #skill-1 {
+            bottom: 170px;
+            right: 65px;
+            background: radial-gradient(circle, rgba(52, 152, 219, 0.9) 0%, rgba(41, 128, 185, 0.9) 100%);
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.5);
+        }
+        
+        #skill-2 {
+            bottom: 50px;
+            right: 170px;
+            background: radial-gradient(circle, rgba(155, 89, 182, 0.9) 0%, rgba(142, 68, 173, 0.9) 100%);
+            box-shadow: 0 4px 15px rgba(155, 89, 182, 0.5);
+        }
+        
+        /* 增益选择界面 */
+        #upgrade-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-y: auto;
+            touch-action: pan-y;
+        }
+        
+        .upgrade-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .upgrade-title {
+            font-size: 32px;
+            color: #ffd700;
+            text-shadow: 0 0 20px rgba(255,215,0,0.5);
+            margin-bottom: 10px;
+        }
+        
+        .upgrade-subtitle {
+            color: #aaa;
+            font-size: 16px;
+        }
+        
+        .upgrade-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 600px;
+        }
+        
+        .upgrade-card {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .upgrade-card:hover, .upgrade-card.selected {
+            background: rgba(255,215,0,0.2);
+            border-color: #ffd700;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255,215,0,0.4);
+        }
+        
+        .upgrade-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        
+        .upgrade-name {
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+        
+        .upgrade-desc {
+            font-size: 12px;
+            color: #aaa;
+            line-height: 1.4;
+        }
+        
+        .upgrade-value {
+            font-size: 18px;
+            color: #fff;
+            font-weight: bold;
+            margin-top: 5px;
+            text-shadow: 0 0 10px currentColor;
+        }
+        
+        .upgrade-rarity {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        
+        .rarity-common { background: #95a5a6; color: #fff; }
+        .rarity-uncommon { background: #2ecc71; color: #fff; }
+        .rarity-rare { background: #3498db; color: #fff; }
+        .rarity-epic { background: #9b59b6; color: #fff; }
+        .rarity-legendary { background: #f39c12; color: #fff; }
+        .rarity-mythic { background: #e74c3c; color: #fff; box-shadow: 0 0 10px #e74c3c; }
+        
+        /* 机制升级特殊标识 */
+        .mechanic-badge {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: #e74c3c;
+            color: #fff;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+        
+        .mechanic-level {
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: #f39c12;
+            color: #fff;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        #confirm-upgrade {
+            margin-top: 30px;
+            padding: 15px 50px;
+            font-size: 18px;
+            background: linear-gradient(135deg, #ffd700, #ffb700);
+            color: #1a1a2e;
+            border: none;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s;
+        }
+        
+        #confirm-upgrade.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        /* 主菜单 */
+        #menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 100;
+            color: white;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
+        }
+        
+        .menu-content {
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+        
+        .menu-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-top: 20px;
+            width: 100%;
+        }
+        
+        .menu-title {
+            font-size: 36px;
+            color: #ffd700;
+            text-shadow: 0 0 20px rgba(255,215,0,0.5);
+            margin-bottom: 5px;
+        }
+        
+        .version-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+            box-shadow: 0 0 15px rgba(231, 76, 60, 0.5);
+        }
+        
+        .menu-subtitle {
+            color: #aaa;
+            font-size: 14px;
+        }
+        
+        .selection-hint {
+            color: #ffd700;
+            font-size: 14px;
+            margin-bottom: 15px;
+            padding: 8px 16px;
+            background: rgba(255,215,0,0.1);
+            border-radius: 20px;
+            border: 1px solid rgba(255,215,0,0.3);
+            animation: pulse 2s infinite;
+        }
+        
+        .pigeon-select {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+        }
+        
+        @media (min-width: 600px) {
+            .pigeon-select {
+                grid-template-columns: repeat(3, 1fr);
+                max-width: 600px;
+            }
+        }
+        
+        @media (min-width: 900px) {
+            .pigeon-select {
+                grid-template-columns: repeat(5, 1fr);
+                max-width: 1000px;
+            }
+        }
+        
+        .pigeon-card {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 15px;
+            padding: 15px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            touch-action: manipulation;
+        }
+        
+        .pigeon-card.selected {
+            background: rgba(255,215,0,0.2);
+            border-color: #ffd700;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255,215,0,0.4);
+        }
+        
+        .pigeon-card.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: rgba(0,0,0,0.3);
+        }
+        
+        .pigeon-card.locked::after {
+            content: '🔒';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 30px;
+            background: rgba(0,0,0,0.8);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .pigeon-card:active {
+            transform: scale(0.95);
+        }
+        
+        .pigeon-card.locked:active {
+            transform: none;
+        }
+        
+        .pigeon-preview {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 8px;
+            position: relative;
+        }
+        
+        .pigeon-name {
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .pigeon-desc {
+            font-size: 11px;
+            color: #aaa;
+            line-height: 1.3;
+            margin-bottom: 8px;
+        }
+        
+        .pigeon-stats {
+            display: flex;
+            justify-content: center;
+            gap: 3px;
+            font-size: 10px;
+        }
+        
+        .stat {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 5px;
+            border-radius: 8px;
+            color: #fff;
+        }
+        
+        .unlock-cost {
+            font-size: 12px;
+            color: #9b59b6;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .double-tap-hint {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 10px;
+            color: #ffd700;
+            opacity: 0;
+            transition: opacity 0.3s;
+            background: rgba(0,0,0,0.5);
+            padding: 2px 5px;
+            border-radius: 5px;
+        }
+        
+        .pigeon-card.selected .double-tap-hint {
+            opacity: 1;
+        }
+        
+        #start-btn {
+            margin: 20px 0;
+            padding: 15px 50px;
+            font-size: 18px;
+            background: linear-gradient(135deg, #ffd700, #ffb700);
+            color: #1a1a2e;
+            border: none;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255,215,0,0.4);
+            transition: all 0.3s;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.9);
+        }
+        
+        #start-btn.show {
+            opacity: 1;
+            pointer-events: all;
+            transform: scale(1);
+        }
+        
+        #start-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .game-tips {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        .game-tips h3 {
+            color: #ffd700;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .game-tips p {
+            color: #aaa;
+            font-size: 12px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        
+        .enemy-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        
+        .enemy-tag {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            white-space: nowrap;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            color: white;
+            padding: 20px;
+        }
+        
+        .wave-info {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: #ffd700;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(255,215,0,0.8);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s;
+            z-index: 20;
+        }
+        
+        .damage-text {
+            position: absolute;
+            color: #ff6b6b;
+            font-weight: bold;
+            font-size: 16px;
+            pointer-events: none;
+            animation: float-up 1s ease-out forwards;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 30;
+        }
+        
+        @keyframes float-up {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-30px); opacity: 0; }
+        }
+        
+        #menu::-webkit-scrollbar, #upgrade-menu::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #menu::-webkit-scrollbar-track, #upgrade-menu::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        #menu::-webkit-scrollbar-thumb, #upgrade-menu::-webkit-scrollbar-thumb {
+            background: rgba(255,215,0,0.5);
+            border-radius: 3px;
+        }
+        
+        .current-stats {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+        
+        .current-stats h3 {
+            color: #ffd700;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: #aaa;
+        }
+        
+        .stat-item {
+            background: rgba(0,0,0,0.3);
+            padding: 5px 10px;
+            border-radius: 15px;
+        }
+        
+        .stat-value {
+            color: #fff;
+            font-weight: bold;
+        }
+        
+        /* 生命指示器 */
+        .lives-indicator {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            color: #e74c3c;
+            font-size: 20px;
+            z-index: 10;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        .life-icon {
+            display: inline-block;
+            margin-left: 5px;
+        }
+        
+        .life-lost {
+            opacity: 0.3;
+        }
+        
+        /* Meta货币显示 */
+        .currency-display {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .currency-item {
+            background: rgba(0,0,0,0.7);
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 2px solid;
+        }
+        
+        .currency-dodeca {
+            border-color: #f1c40f;
+            color: #f1c40f;
+        }
+        
+        .currency-feather {
+            border-color: #9b59b6;
+            color: #9b59b6;
+        }
+        
+        /* Meta升级菜单 */
+        #meta-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.98);
+            z-index: 300;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-y: auto;
+            touch-action: pan-y;
+        }
+        
+        .meta-header {
+            text-align: center;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        
+        .meta-title {
+            font-size: 28px;
+            color: #f1c40f;
+            text-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
+            margin-bottom: 10px;
+        }
+        
+        .meta-subtitle {
+            color: #aaa;
+            font-size: 14px;
+        }
+        
+        .meta-currencies {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .meta-currency-box {
+            background: rgba(255,255,255,0.1);
+            padding: 15px 25px;
+            border-radius: 15px;
+            text-align: center;
+            border: 2px solid;
+        }
+        
+        .meta-currency-box.dodeca {
+            border-color: #f1c40f;
+        }
+        
+        .meta-currency-box.feather {
+            border-color: #9b59b6;
+        }
+        
+        .meta-currency-icon {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+        
+        .meta-currency-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .meta-currency-name {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 2px;
+        }
+        
+        .meta-upgrades {
+            width: 100%;
+            max-width: 800px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .meta-upgrade-card {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .meta-upgrade-card:hover {
+            background: rgba(241, 196, 15, 0.1);
+            border-color: #f1c40f;
+        }
+        
+        .meta-upgrade-card.maxed {
+            border-color: #2ecc71;
+            background: rgba(46, 204, 113, 0.1);
+        }
+        
+        .meta-upgrade-name {
+            font-weight: bold;
+            color: #f1c40f;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+        
+        .meta-upgrade-desc {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        
+        .meta-upgrade-current {
+            font-size: 14px;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+        
+        .meta-upgrade-cost {
+            font-size: 16px;
+            color: #f1c40f;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .meta-upgrade-btn {
+            background: linear-gradient(135deg, #f1c40f, #f39c12);
+            color: #1a1a2e;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        
+        .meta-upgrade-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(241, 196, 15, 0.5);
+        }
+        
+        .meta-upgrade-btn:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+        }
+        
+        .meta-upgrade-btn.maxed {
+            background: #2ecc71;
+            color: #fff;
+        }
+        
+        .close-meta-btn {
+            margin-top: 20px;
+            padding: 12px 40px;
+            font-size: 16px;
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            border: 2px solid #fff;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .close-meta-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .meta-btn {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 101;
+            background: linear-gradient(135deg, #f1c40f, #f39c12);
+            color: #1a1a2e;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(241, 196, 15, 0.4);
+            transition: all 0.3s;
+        }
+        
+        .meta-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(241, 196, 15, 0.6);
+        }
+        
+        /* 结算界面 */
+        #settlement-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 250;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: white;
+        }
+        
+        .settlement-title {
+            font-size: 36px;
+            color: #f1c40f;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
+        }
+        
+        .settlement-stats {
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .settlement-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .settlement-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .settlement-label {
+            color: #aaa;
+        }
+        
+        .settlement-value {
+            color: #fff;
+            font-weight: bold;
+        }
+        
+        .settlement-rewards {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .reward-item {
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid;
+            min-width: 120px;
+        }
+        
+        .reward-item.dodeca {
+            border-color: #f1c40f;
+        }
+        
+        .reward-item.feather {
+            border-color: #9b59b6;
+        }
+        
+        .reward-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        
+        .reward-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .reward-name {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        
+        .settlement-btn {
+            padding: 15px 50px;
+            font-size: 18px;
+            background: linear-gradient(135deg, #ffd700, #ffb700);
+            color: #1a1a2e;
+            border: none;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .settlement-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255,215,0,0.5);
+        }
+        
+        /* 解锁确认弹窗 */
+        .unlock-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 400;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .unlock-content {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border: 2px solid #9b59b6;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            max-width: 350px;
+            width: 100%;
+            box-shadow: 0 0 30px rgba(155, 89, 182, 0.5);
+        }
+        
+        .unlock-title {
+            font-size: 24px;
+            color: #9b59b6;
+            margin-bottom: 15px;
+        }
+        
+        .unlock-desc {
+            color: #aaa;
+            font-size: 14px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        
+        .unlock-cost-display {
+            font-size: 20px;
+            color: #9b59b6;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        .unlock-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .unlock-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .unlock-confirm {
+            background: #9b59b6;
+            color: #fff;
+        }
+        
+        .unlock-confirm:hover:not(:disabled) {
+            background: #8e44ad;
+        }
+        
+        .unlock-cancel {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+        
+        .unlock-cancel:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .unlock-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .time-growth-indicator {
+            position: absolute;
+            top: 100px;
+            right: 10px;
+            background: rgba(52, 152, 219, 0.3);
+            border: 2px solid #3498db;
+            border-radius: 10px;
+            padding: 10px;
+            color: #fff;
+            font-size: 14px;
+            z-index: 10;
+            text-align: center;
+        }
+        
+        .growth-bar {
+            width: 100px;
+            height: 8px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 4px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .growth-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            transition: width 0.3s;
+        }
+        
+        /* 刀鸽旋转速度指示器 */
+        .blade-speed-indicator {
+            position: absolute;
+            top: 100px;
+            right: 10px;
+            background: rgba(230, 126, 34, 0.3);
+            border: 2px solid #e67e22;
+            border-radius: 10px;
+            padding: 10px;
+            color: #fff;
+            font-size: 14px;
+            z-index: 10;
+            text-align: center;
+        }
+        
+        .blade-speed-bar {
+            width: 100px;
+            height: 8px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 4px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .blade-speed-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e67e22, #f39c12);
+            transition: width 0.3s;
+        }
+        
+        /* 机制升级指示器 */
+        .mechanic-indicators {
+            position: absolute;
+            top: 140px;
+            left: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            z-index: 10;
+            max-width: 150px;
+        }
+        
+        .mechanic-badge-active {
+            background: rgba(231, 76, 60, 0.8);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            animation: glow 2s infinite;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .mechanic-level-badge {
+            background: #f39c12;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 10px;
+            margin-left: 5px;
+        }
+        
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 5px #e74c3c; }
+            50% { box-shadow: 0 0 20px #e74c3c; }
+        }
+        
+        /* 叠加进度条 */
+        .stack-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 2px;
+            margin-top: 3px;
+            overflow: hidden;
+        }
+        
+        .stack-fill {
+            height: 100%;
+            background: #f39c12;
+            transition: width 0.3s;
+        }
+        
+        /* 无尽模式标签 */
+        .endless-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        /* 每日挑战样式 */
+        .daily-challenge-section {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px 0;
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(192, 57, 43, 0.2));
+            border: 2px solid #e74c3c;
+            border-radius: 20px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .daily-challenge-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shine 3s infinite;
+        }
+        
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .daily-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .daily-title {
+            font-size: 24px;
+            color: #e74c3c;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .daily-date {
+            font-size: 14px;
+            color: #aaa;
+            background: rgba(0,0,0,0.3);
+            padding: 5px 10px;
+            border-radius: 15px;
+        }
+        
+        .daily-modifiers {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .modifier-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .modifier-tag {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .modifier-buff {
+            background: rgba(46, 204, 113, 0.3);
+            border: 1px solid #2ecc71;
+            color: #2ecc71;
+        }
+        
+        .modifier-debuff {
+            background: rgba(231, 76, 60, 0.3);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+        }
+        
+        .modifier-special {
+            background: rgba(155, 89, 182, 0.3);
+            border: 1px solid #9b59b6;
+            color: #9b59b6;
+        }
+        
+        .daily-btn {
+            margin-top: 15px;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            z-index: 1;
+            width: 100%;
+        }
+        
+        .daily-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+        }
+        
+        .daily-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .daily-reward {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #f1c40f;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* 挑战完成弹窗 */
+        .challenge-complete {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 500;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .challenge-complete h2 {
+            font-size: 48px;
+            color: #2ecc71;
+            margin-bottom: 20px;
+            text-shadow: 0 0 30px rgba(46, 204, 113, 0.8);
+        }
+        
+        .challenge-stats {
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .challenge-rank {
+            font-size: 72px;
+            margin: 20px 0;
+        }
+        
+        .rank-s { color: #f1c40f; text-shadow: 0 0 30px #f1c40f; }
+        .rank-a { color: #e74c3c; }
+        .rank-b { color: #9b59b6; }
+        .rank-c { color: #3498db; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="ui">
+        <div>分数: <span id="score">0</span></div>
+        <div>波次: <span id="wave">1</span><span id="max-wave-display"></span></div>
+        <div class="health-bar">
+            <div class="health-fill" id="health-fill" style="width: 100%"></div>
+        </div>
+        <div style="margin-top: 5px; font-size: 12px; color: #aaa;">
+            <span id="pigeon-name">选择鸽子</span> | <span id="attack-status">就绪</span>
+        </div>
+    </div>
+    
+    <div class="lives-indicator" id="lives-indicator" style="display: none;">
+        生命: <span class="life-icon">❤️</span><span class="life-icon">❤️</span>
+    </div>
+    
+    <div class="mechanic-indicators" id="mechanic-indicators"></div>
+    
+    <div id="joystick-zone">
+        <div id="joystick-knob"></div>
+    </div>
+    
+    <div id="attack-btn">攻击</div>
+    
+    <!-- 主动技能按钮 -->
+    <div id="skill-1" class="skill-btn hidden">
+        <div class="cooldown-overlay" style="height: 0%"></div>
+        <span class="cooldown-text">⚡</span>
+    </div>
+    <div id="skill-2" class="skill-btn hidden">
+        <div class="cooldown-overlay" style="height: 0%"></div>
+        <span class="cooldown-text">🛡️</span>
+    </div>
+    
+    <!-- 增益选择界面 -->
+    <div id="upgrade-menu">
+        <div class="upgrade-header">
+            <h2 class="upgrade-title">✨ 选择增益</h2>
+            <p class="upgrade-subtitle">第 <span id="upgrade-wave">1</span> 波完成！选择一项强化</p>
+        </div>
+        
+        <div class="current-stats">
+            <h3>当前属性</h3>
+            <div class="stat-row">
+                <div class="stat-item">攻击: <span class="stat-value" id="stat-damage">0</span></div>
+                <div class="stat-item">范围: <span class="stat-value" id="stat-range">0</span></div>
+                <div class="stat-item">生命: <span class="stat-value" id="stat-hp">0</span></div>
+                <div class="stat-item">速度: <span class="stat-value" id="stat-speed">0</span></div>
+            </div>
+        </div>
+        
+        <div class="upgrade-options" id="upgrade-options">
+            <!-- 动态生成 -->
+        </div>
+        
+        <button id="confirm-upgrade">确认选择</button>
+    </div>
+    
+    <!-- Meta菜单按钮 -->
+    <button class="meta-btn" id="meta-btn" onclick="showMetaMenu()">✡ 正12面体</button>
+    
+    <!-- Meta升级菜单 -->
+    <div id="meta-menu">
+        <div class="meta-header">
+            <h2 class="meta-title">✡ Meta 升级 <span class="endless-badge">♾️ 无尽</span></h2>
+            <p class="meta-subtitle">使用正12面体进行永久性强化（无上限）</p>
+            <p style="color: #9b59b6; font-size: 12px; margin-top: 5px;">溢出的魂羽会自动转化为正12面体 (5:1)</p>
+        </div>
+        
+        <div class="meta-currencies">
+            <div class="meta-currency-box dodeca">
+                <div class="meta-currency-icon">✡</div>
+                <div class="meta-currency-value" id="meta-dodeca-display">0</div>
+                <div class="meta-currency-name">正12面体</div>
+            </div>
+            <div class="meta-currency-box feather">
+                <div class="meta-currency-icon">🪶</div>
+                <div class="meta-currency-value" id="meta-feather-display">0</div>
+                <div class="meta-currency-name">魂羽</div>
+            </div>
+        </div>
+        
+        <div class="meta-upgrades" id="meta-upgrades">
+            <!-- 动态生成 -->
+        </div>
+        
+        <button class="close-meta-btn" onclick="closeMetaMenu()">返回主菜单</button>
+    </div>
+    
+    <!-- 结算界面 -->
+    <div id="settlement-screen">
+        <h2 class="settlement-title">战斗结算</h2>
+        
+        <div class="settlement-stats">
+            <div class="settlement-row">
+                <span class="settlement-label">击杀敌人</span>
+                <span class="settlement-value" id="settlement-kills">0</span>
+            </div>
+            <div class="settlement-row">
+                <span class="settlement-label">存活波数</span>
+                <span class="settlement-value" id="settlement-waves">0</span>
+            </div>
+            <div class="settlement-row">
+                <span class="settlement-label">最终得分</span>
+                <span class="settlement-value" id="settlement-score">0</span>
+            </div>
+        </div>
+        
+        <div class="settlement-rewards">
+            <div class="reward-item dodeca">
+                <div class="reward-icon">✡</div>
+                <div class="reward-value" id="reward-dodeca">+0</div>
+                <div class="reward-name">正12面体</div>
+            </div>
+            <div class="reward-item feather">
+                <div class="reward-icon">🪶</div>
+                <div class="reward-value" id="reward-feather">+0</div>
+                <div class="reward-name">魂羽</div>
+            </div>
+        </div>
+        
+        <div id="overflow-convert" style="color: #9b59b6; font-size: 14px; margin-bottom: 20px; display: none;">
+            溢出转化: <span id="overflow-amount">0</span> 魂羽 → <span id="overflow-dodeca">0</span> 正12面体
+        </div>
+        
+        <button class="settlement-btn" onclick="finishSettlement()">领取奖励</button>
+    </div>
+    
+    <!-- 每日挑战完成界面 -->
+    <div class="challenge-complete" id="challenge-complete">
+        <h2>🏆 每日挑战完成!</h2>
+        <div class="challenge-stats">
+            <div style="font-size: 24px; margin-bottom: 10px;">今日排名</div>
+            <div class="challenge-rank rank-s" id="challenge-rank">S</div>
+            <div style="font-size: 18px; color: #aaa;">完成波数: <span id="challenge-waves">-</span></div>
+            <div style="font-size: 16px; color: #aaa; margin-top: 10px;">用时: <span id="challenge-time">-</span></div>
+        </div>
+        <div style="font-size: 20px; color: #f1c40f; margin-bottom: 30px;">
+            奖励: ✡ <span id="challenge-reward">100</span>
+        </div>
+        <button class="settlement-btn" onclick="closeChallengeComplete()">领取奖励</button>
+    </div>
+    
+    <!-- 解锁确认弹窗 -->
+    <div class="unlock-modal" id="unlock-modal">
+        <div class="unlock-content">
+            <h3 class="unlock-title">🔓 解锁鸽子</h3>
+            <p class="unlock-desc" id="unlock-desc">确定要花费魂羽解锁这只鸽子吗？</p>
+            <div class="unlock-cost-display" id="unlock-cost">🪶 20</div>
+            <div class="unlock-buttons">
+                <button class="unlock-btn unlock-confirm" id="unlock-confirm-btn" onclick="confirmUnlock()">确认解锁</button>
+                <button class="unlock-btn unlock-cancel" onclick="closeUnlockModal()">取消</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="menu">
+        <div class="menu-content">
+            <div class="menu-header">
+                <h1 class="menu-title">🕊️ Rou鸽Like</h1>
+                <div class="version-badge">Evolve 1.3.2</div>
+                <p class="menu-subtitle">双击卡片选择你的战斗鸽子</p>
+            </div>
+            
+            <div class="currency-display">
+                <div class="currency-item currency-dodeca">
+                    <span>✡</span>
+                    <span id="menu-dodeca">0</span>
+                </div>
+                <div class="currency-item currency-feather">
+                    <span>🪶</span>
+                    <span id="menu-feather">0</span>
+                </div>
+            </div>
+            
+            <!-- 每日挑战区域 -->
+            <div class="daily-challenge-section" id="daily-section">
+                <div class="daily-header">
+                    <div class="daily-title">📅 每日挑战</div>
+                    <div class="daily-date" id="daily-date">2026-01-01</div>
+                </div>
+                <div class="daily-modifiers" id="daily-modifiers">
+                    <!-- 动态生成 -->
+                </div>
+                <div class="daily-reward">目标: 存活 <span id="daily-target-waves">?</span> 波 | 奖励: ✡ 50-200</div>
+                <button class="daily-btn" id="daily-btn" onclick="startDailyChallenge()">开始今日挑战</button>
+            </div>
+            
+            <div class="selection-hint" id="selection-hint">👆 双击卡片选择</div>
+            
+            <div class="pigeon-select" id="pigeon-select">
+                <!-- 动态生成 -->
+            </div>
+            
+            <button id="start-btn">开始游戏</button>
+            
+            <div class="game-tips">
+                <h3>🎮 游戏玩法</h3>
+                <p>摇杆移动，攻击按钮对范围内所有敌人造成伤害！敌人越近受到伤害越高。爆鸽每场战斗有2条命，处决敌人时会产生余波伤害。</p>
+                <p><strong style="color:#f39c12">Evolve 1.3.2 更新：</strong>移除Boss系统，每日挑战改为10-20波随机目标，完成即可领取奖励！</p>
+                <div class="enemy-list">
+                    <span class="enemy-tag">■ 正方形(均衡)</span>
+                    <span class="enemy-tag">▲ 三角形(血厚慢速)</span>
+                    <span class="enemy-tag">▱ 平行四边形(快速脆弱)</span>
+                    <span class="enemy-tag">☾ 月牙(治疗友军)</span>
+                    <span class="enemy-tag">● 圆形(护盾→狂暴)</span>
+                    <span class="enemy-tag">✦ 四角星(复活一次)</span>
+                    <span class="enemy-tag">⬡ 六边形(超肉极慢)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="game-over">
+        <h1 style="font-size: 48px; color: #ff6b6b; margin-bottom: 20px;">游戏结束</h1>
+        <p style="font-size: 24px; margin-bottom: 10px;">最终得分: <span id="final-score">0</span></p>
+        <p style="font-size: 18px; color: #aaa; margin-bottom: 30px;">存活波次: <span id="final-wave">0</span></p>
+        <button onclick="showSettlement()" style="padding: 15px 40px; font-size: 18px; background: #ffd700; color: #1a1a2e; border: none; border-radius: 30px; font-weight: bold; cursor: pointer;">查看结算</button>
+    </div>
+    
+    <div class="wave-info" id="wave-info">第 1 波</div>
+    
+    <div class="time-growth-indicator" id="time-growth-indicator" style="display: none;">
+        <div>时间成长</div>
+        <div class="growth-bar">
+            <div class="growth-fill" id="growth-fill" style="width: 0%"></div>
+        </div>
+        <div style="font-size: 12px; margin-top: 3px;">+<span id="growth-bonus">0</span>%</div>
+    </div>
+    
+    <!-- 刀鸽旋转速度指示器 -->
+    <div class="blade-speed-indicator" id="blade-speed-indicator" style="display: none;">
+        <div>刀片转速</div>
+        <div class="blade-speed-bar">
+            <div class="blade-speed-fill" id="blade-speed-fill" style="width: 0%"></div>
+        </div>
+        <div style="font-size: 12px; margin-top: 3px;"><span id="blade-speed-value">100</span>%</div>
+    </div>
+
+    <script>
+        // ==================== 本地存储管理 ====================
+        const StorageManager = {
+            keys: {
+                unlockedPigeons: 'rouge_pigeons_unlocked',
+                metaUpgrades: 'rouge_pigeons_meta',
+                currencies: 'rouge_pigeons_currencies',
+                dailyChallenge: 'rouge_pigeons_daily',
+                dailyCompleted: 'rouge_pigeons_daily_completed'
+            },
+            
+            init() {
+                if (!localStorage.getItem(this.keys.currencies)) {
+                    this.saveCurrencies({ dodeca: 0, feather: 0 });
+                }
+                if (!localStorage.getItem(this.keys.unlockedPigeons)) {
+                    this.saveUnlockedPigeons(['warrior', 'speed', 'tank', 'healer', 'bomber']);
+                }
+                if (!localStorage.getItem(this.keys.metaUpgrades)) {
+                    this.saveMetaUpgrades({
+                        initialDamage: 0,
+                        initialHp: 0,
+                        initialSpeed: 0,
+                        dodecaGain: 0,
+                        startShield: 0,
+                        reviveChance: 0
+                    });
+                }
+            },
+            
+            getCurrencies() {
+                return JSON.parse(localStorage.getItem(this.keys.currencies)) || { dodeca: 0, feather: 0 };
+            },
+            
+            saveCurrencies(data) {
+                localStorage.setItem(this.keys.currencies, JSON.stringify(data));
+            },
+            
+            addDodeca(amount) {
+                const curr = this.getCurrencies();
+                curr.dodeca += amount;
+                this.saveCurrencies(curr);
+                return curr.dodeca;
+            },
+            
+            addFeather(amount) {
+                const curr = this.getCurrencies();
+                curr.feather += amount;
+                this.saveCurrencies(curr);
+                return curr.feather;
+            },
+            
+            convertOverflowFeather() {
+                const curr = this.getCurrencies();
+                const FEATHER_CAP = 999;
+                const CONVERT_RATE = 5;
+                
+                if (curr.feather > FEATHER_CAP) {
+                    const overflow = curr.feather - FEATHER_CAP;
+                    const convertedDodeca = Math.floor(overflow / CONVERT_RATE);
+                    const remainingFeather = FEATHER_CAP + (overflow % CONVERT_RATE);
+                    
+                    curr.feather = remainingFeather;
+                    curr.dodeca += convertedDodeca;
+                    this.saveCurrencies(curr);
+                    
+                    return { overflow, convertedDodeca };
+                }
+                return null;
+            },
+            
+            getUnlockedPigeons() {
+                return JSON.parse(localStorage.getItem(this.keys.unlockedPigeons)) || ['warrior', 'speed', 'tank', 'healer', 'bomber'];
+            },
+            
+            saveUnlockedPigeons(list) {
+                localStorage.setItem(this.keys.unlockedPigeons, JSON.stringify(list));
+            },
+            
+            unlockPigeon(type) {
+                const list = this.getUnlockedPigeons();
+                if (!list.includes(type)) {
+                    list.push(type);
+                    this.saveUnlockedPigeons(list);
+                }
+            },
+            
+            getMetaUpgrades() {
+                return JSON.parse(localStorage.getItem(this.keys.metaUpgrades)) || {};
+            },
+            
+            saveMetaUpgrades(data) {
+                localStorage.setItem(this.keys.metaUpgrades, JSON.stringify(data));
+            },
+            
+            upgradeMeta(key) {
+                const upgrades = this.getMetaUpgrades();
+                const currentLevel = upgrades[key] || 0;
+                const cost = this.calculateMetaCost(key, currentLevel);
+                
+                const curr = this.getCurrencies();
+                if (curr.dodeca < cost) return false;
+                
+                curr.dodeca -= cost;
+                upgrades[key] = currentLevel + 1;
+                
+                this.saveCurrencies(curr);
+                this.saveMetaUpgrades(upgrades);
+                return true;
+            },
+            
+            calculateMetaCost(key, level) {
+                const baseCosts = {
+                    initialDamage: 10,
+                    initialHp: 10,
+                    initialSpeed: 15,
+                    dodecaGain: 20,
+                    startShield: 10,
+                    reviveChance: 50
+                };
+                const growthRate = 1.5;
+                return Math.floor(baseCosts[key] * Math.pow(growthRate, level));
+            },
+            
+            getMetaBonus(key) {
+                const upgrades = this.getMetaUpgrades();
+                const level = upgrades[key] || 0;
+                
+                const bonuses = {
+                    initialDamage: level * 0.05,
+                    initialHp: level * 0.05,
+                    initialSpeed: level * 0.03,
+                    dodecaGain: level * 0.10,
+                    startShield: level * 20,
+                    reviveChance: Math.min(level * 0.05, 0.95)
+                };
+                return bonuses[key] || 0;
+            },
+            
+            getUpgradeStats(key) {
+                const upgrades = this.getMetaUpgrades();
+                const level = upgrades[key] || 0;
+                const nextCost = this.calculateMetaCost(key, level);
+                const totalSpent = this.calculateTotalSpent(key, level);
+                return { level, nextCost, totalSpent };
+            },
+            
+            calculateTotalSpent(key, currentLevel) {
+                let total = 0;
+                for (let i = 0; i < currentLevel; i++) {
+                    total += this.calculateMetaCost(key, i);
+                }
+                return total;
+            },
+            
+            // 每日挑战相关
+            getDailyChallenge() {
+                return JSON.parse(localStorage.getItem(this.keys.dailyChallenge)) || null;
+            },
+            
+            saveDailyChallenge(data) {
+                localStorage.setItem(this.keys.dailyChallenge, JSON.stringify(data));
+            },
+            
+            isDailyCompleted() {
+                const completed = localStorage.getItem(this.keys.dailyCompleted);
+                const today = new Date().toDateString();
+                return completed === today;
+            },
+            
+            markDailyCompleted() {
+                localStorage.setItem(this.keys.dailyCompleted, new Date().toDateString());
+            }
+        };
+
+        // ==================== 每日挑战系统（修改版） ====================
+        const DailyChallenge = {
+            modifiers: [],
+            isActive: false,
+            startTime: 0,
+            targetWaves: 10, // 目标波数（10-20随机）
+            
+            // 基于日期生成种子
+            getSeedFromDate() {
+                const now = new Date();
+                const dateStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+                document.getElementById('daily-date').textContent = dateStr;
+                
+                // 使用日期字符串生成数字种子
+                let seed = 0;
+                for (let i = 0; i < dateStr.length; i++) {
+                    seed = ((seed << 5) - seed) + dateStr.charCodeAt(i);
+                    seed |= 0;
+                }
+                return Math.abs(seed);
+            },
+            
+            // 伪随机数生成器
+            seededRandom(seed) {
+                return function() {
+                    seed = (seed * 9301 + 49297) % 233280;
+                    return seed / 233280;
+                };
+            },
+            
+            // 生成每日挑战
+            generateDaily() {
+                const seed = this.getSeedFromDate();
+                const rng = this.seededRandom(seed);
+                
+                // 生成目标波数：10-20之间随机
+                this.targetWaves = 10 + Math.floor(rng() * 11); // 10-20
+                
+                const allModifiers = [
+                    // 增益类
+                    { type: 'buff', id: 'damage_up', name: '攻击力+30%', icon: '⚔️', effect: () => { playerUpgrades.damageBonus += 0.3; } },
+                    { type: 'buff', id: 'speed_up', name: '移速+40%', icon: '💨', effect: () => { playerUpgrades.speedBonus += 0.4; } },
+                    { type: 'buff', id: 'hp_up', name: '生命值+50%', icon: '❤️', effect: () => { playerUpgrades.hpBonus += 0.5; } },
+                    { type: 'buff', id: 'range_up', name: '攻击范围+35%', icon: '👁️', effect: () => { playerUpgrades.rangeBonus += 0.35; } },
+                    { type: 'buff', id: 'cooldown_down', name: '冷却-25%', icon: '⚡', effect: () => { playerUpgrades.cooldownReduction += 0.25; } },
+                    { type: 'buff', id: 'lifesteal_up', name: '吸血+20%', icon: '🩸', effect: () => { playerUpgrades.lifeStealBonus += 0.2; } },
+                    { type: 'buff', id: 'shield_start', name: '初始护盾+100', icon: '🛡️', effect: () => { playerUpgrades.shieldBonus += 100; } },
+                    { type: 'buff', id: 'double_gold', name: '金币双倍', icon: '💰', effect: () => {} },
+                    
+                    // 减益类
+                    { type: 'debuff', id: 'damage_down', name: '攻击力-20%', icon: '💔', effect: () => { playerUpgrades.damageBonus -= 0.2; } },
+                    { type: 'debuff', id: 'speed_down', name: '移速-25%', icon: '🐌', effect: () => { playerUpgrades.speedBonus -= 0.25; } },
+                    { type: 'debuff', id: 'hp_down', name: '生命值-30%', icon: '💀', effect: () => { playerUpgrades.hpBonus -= 0.3; } },
+                    { type: 'debuff', id: 'enemy_speed', name: '敌人加速+30%', icon: '👿', effect: () => {} },
+                    { type: 'debuff', id: 'enemy_hp', name: '敌人生命+40%', icon: '👹', effect: () => {} },
+                    { type: 'debuff', id: 'no_heal', name: '禁止回血', icon: '🚫', effect: () => {} },
+                    
+                    // 特殊类
+                    { type: 'special', id: 'all_blade', name: '全员刀鸽', icon: '🔪', effect: () => {} },
+                    { type: 'special', id: 'all_bomber', name: '全员爆鸽', icon: '💣', effect: () => {} },
+                    { type: 'special', id: 'reverse_control', name: '反向控制', icon: '🔄', effect: () => {} },
+                    { type: 'special', id: 'invisible_enemy', name: '隐形敌人', icon: '👻', effect: () => {} }
+                ];
+                
+                // 随机选择2-3个增益，1-2个减益，0-1个特殊
+                const buffCount = 2 + Math.floor(rng() * 2);
+                const debuffCount = 1 + Math.floor(rng() * 2);
+                const specialCount = rng() > 0.7 ? 1 : 0;
+                
+                const buffs = allModifiers.filter(m => m.type === 'buff').sort(() => rng() - 0.5).slice(0, buffCount);
+                const debuffs = allModifiers.filter(m => m.type === 'debuff').sort(() => rng() - 0.5).slice(0, debuffCount);
+                const specials = allModifiers.filter(m => m.type === 'special').sort(() => rng() - 0.5).slice(0, specialCount);
+                
+                this.modifiers = [...buffs, ...debuffs, ...specials];
+                
+                // 更新UI显示目标波数
+                document.getElementById('daily-target-waves').textContent = this.targetWaves;
+                
+                return this.modifiers;
+            },
+            
+            // 应用每日挑战效果
+            applyModifiers() {
+                this.modifiers.forEach(mod => {
+                    if (mod.effect) mod.effect();
+                });
+            },
+            
+            // 渲染每日挑战UI
+            render() {
+                const container = document.getElementById('daily-modifiers');
+                container.innerHTML = '';
+                
+                // 重新生成以获取目标波数
+                this.generateDaily();
+                
+                const modifiers = this.modifiers;
+                
+                // 按类型分组
+                const buffs = modifiers.filter(m => m.type === 'buff');
+                const debuffs = modifiers.filter(m => m.type === 'debuff');
+                const specials = modifiers.filter(m => m.type === 'special');
+                
+                const createRow = (mods, className) => {
+                    const row = document.createElement('div');
+                    row.className = 'modifier-row';
+                    mods.forEach(mod => {
+                        const tag = document.createElement('div');
+                        tag.className = `modifier-tag ${className}`;
+                        tag.innerHTML = `${mod.icon} ${mod.name}`;
+                        row.appendChild(tag);
+                    });
+                    return row;
+                };
+                
+                if (buffs.length > 0) container.appendChild(createRow(buffs, 'modifier-buff'));
+                if (debuffs.length > 0) container.appendChild(createRow(debuffs, 'modifier-debuff'));
+                if (specials.length > 0) container.appendChild(createRow(specials, 'modifier-special'));
+                
+                // 检查是否已完成今日挑战
+                const btn = document.getElementById('daily-btn');
+                if (StorageManager.isDailyCompleted()) {
+                    btn.textContent = '今日已完成';
+                    btn.disabled = true;
+                }
+            },
+            
+            start() {
+                this.isActive = true;
+                this.startTime = Date.now();
+                this.applyModifiers();
+            },
+            
+            // 检查是否完成目标
+            checkComplete(currentWave) {
+                if (!this.isActive) return false;
+                return currentWave >= this.targetWaves;
+            },
+            
+            calculateReward(wave, score) {
+                // 基于表现计算奖励
+                const baseReward = 50;
+                const waveBonus = Math.min(wave, this.targetWaves) * 10;
+                const scoreBonus = Math.floor(score / 1000);
+                return Math.min(200, baseReward + waveBonus + scoreBonus);
+            }
+        };
+
+        // ==================== 主动技能系统 ====================
+        const SkillSystem = {
+            skills: [
+                {
+                    id: 'dash',
+                    name: '疾风冲刺',
+                    icon: '⚡',
+                    cooldown: 180, // 3秒
+                    duration: 30,
+                    description: '瞬间冲刺并无敌',
+                    effect: function() {
+                        player.isDashing = true;
+                        player.dashTimer = this.duration;
+                        player.invincible = true;
+                        
+                        // 冲刺方向
+                        const dashSpeed = player.speed * 5;
+                        player.x += Math.cos(player.angle) * dashSpeed;
+                        player.y += Math.sin(player.angle) * dashSpeed;
+                        
+                        // 留下残影
+                        for (let i = 0; i < 5; i++) {
+                            setTimeout(() => {
+                                createAfterimage(player.x, player.y, player.angle);
+                            }, i * 50);
+                        }
+                        
+                        setTimeout(() => {
+                            player.isDashing = false;
+                            player.invincible = false;
+                        }, this.duration * 16);
+                    }
+                },
+                {
+                    id: 'shield_burst',
+                    name: '护盾爆发',
+                    icon: '🛡️',
+                    cooldown: 300, // 5秒
+                    duration: 120,
+                    description: '获得护盾并震开敌人',
+                    effect: function() {
+                        player.shield = Math.max(player.shield, player.maxShield * 0.5);
+                        player.invincible = true;
+                        
+                        // 震开效果
+                        enemies.forEach(e => {
+                            const dist = Math.hypot(e.x - player.x, e.y - player.y);
+                            if (dist < 200) {
+                                const pushX = (e.x - player.x) / dist * 100;
+                                const pushY = (e.y - player.y) / dist * 100;
+                                e.x += pushX;
+                                e.y += pushY;
+                                e.takeDamage(player.damage * 0.5);
+                            }
+                        });
+                        
+                        createExplosion(player.x, player.y, 200, 0);
+                        
+                        setTimeout(() => {
+                            player.invincible = false;
+                        }, 500);
+                    }
+                },
+                {
+                    id: 'time_stop',
+                    name: '时间停止',
+                    icon: '⏱️',
+                    cooldown: 600, // 10秒
+                    duration: 180,
+                    description: '停止时间3秒',
+                    effect: function() {
+                        timeStopActive = true;
+                        timeStopTimer = this.duration;
+                        
+                        // 视觉特效
+                        const timeEffect = {
+                            life: this.duration,
+                            update() {
+                                this.life--;
+                                if (this.life <= 0) timeStopActive = false;
+                            },
+                            draw() {
+                                ctx.fillStyle = `rgba(52, 152, 219, ${0.2 * (this.life / 180)})`;
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                
+                                ctx.strokeStyle = '#3498db';
+                                ctx.lineWidth = 2;
+                                for (let i = 0; i < 10; i++) {
+                                    const x = Math.random() * canvas.width;
+                                    const y = Math.random() * canvas.height;
+                                    ctx.beginPath();
+                                    ctx.arc(x, y, Math.random() * 20, 0, Math.PI*2);
+                                    ctx.stroke();
+                                }
+                            }
+                        };
+                        activeSkills.push(timeEffect);
+                    }
+                },
+                {
+                    id: 'meteor',
+                    name: '陨石天降',
+                    icon: '☄️',
+                    cooldown: 450, // 7.5秒
+                    duration: 0,
+                    description: '召唤陨石攻击全场',
+                    effect: function() {
+                        for (let i = 0; i < 8; i++) {
+                            setTimeout(() => {
+                                if (enemies.length > 0) {
+                                    const target = enemies[Math.floor(Math.random() * enemies.length)];
+                                    const meteor = {
+                                        x: target.x + (Math.random() - 0.5) * 100,
+                                        y: -50,
+                                        targetY: target.y,
+                                        speed: 15,
+                                        damage: player.damage * 2,
+                                        update() {
+                                            this.y += this.speed;
+                                            if (this.y >= this.targetY) {
+                                                createExplosion(this.x, this.y, 100, this.damage);
+                                                this.dead = true;
+                                            }
+                                        },
+                                        draw() {
+                                            ctx.fillStyle = '#e74c3c';
+                                            ctx.beginPath();
+                                            ctx.arc(this.x, this.y, 20, 0, Math.PI*2);
+                                            ctx.fill();
+                                            
+                                            // 尾迹
+                                            ctx.strokeStyle = 'rgba(231, 76, 60, 0.5)';
+                                            ctx.lineWidth = 10;
+                                            ctx.beginPath();
+                                            ctx.moveTo(this.x, this.y);
+                                            ctx.lineTo(this.x, this.y - 50);
+                                            ctx.stroke();
+                                        }
+                                    };
+                                    activeSkills.push(meteor);
+                                }
+                            }, i * 200);
+                        }
+                    }
+                },
+                {
+                    id: 'clone',
+                    name: '分身术',
+                    icon: '👥',
+                    cooldown: 900, // 15秒
+                    duration: 300,
+                    description: '创造2个分身战斗',
+                    effect: function() {
+                        for (let i = 0; i < 2; i++) {
+                            const clone = {
+                                x: player.x + Math.cos(i * Math.PI) * 50,
+                                y: player.y + Math.sin(i * Math.PI) * 50,
+                                life: this.duration,
+                                angle: player.angle,
+                                update() {
+                                    this.life--;
+                                    // 跟随玩家
+                                    this.x += (player.x - this.x) * 0.1;
+                                    this.y += (player.y - this.y) * 0.1;
+                                    this.angle = player.angle;
+                                    
+                                    // 自动攻击附近敌人
+                                    if (this.life % 30 === 0) {
+                                        enemies.forEach(e => {
+                                            if (Math.hypot(e.x - this.x, e.y - this.y) < player.attackRange) {
+                                                e.takeDamage(player.damage * 0.3);
+                                                createHitEffect(e.x, e.y);
+                                            }
+                                        });
+                                    }
+                                },
+                                draw() {
+                                    ctx.globalAlpha = 0.6;
+                                    drawPigeon(ctx, player.type, this.x, this.y, 35, this.angle);
+                                    ctx.globalAlpha = 1;
+                                }
+                            };
+                            activeSkills.push(clone);
+                        }
+                    }
+                },
+                {
+                    id: 'heal_zone',
+                    name: '治愈领域',
+                    icon: '💚',
+                    cooldown: 360, // 6秒
+                    duration: 300,
+                    description: '持续回血并减速敌人',
+                    effect: function() {
+                        const zone = {
+                            x: player.x,
+                            y: player.y,
+                            radius: 150,
+                            life: this.duration,
+                            update() {
+                                this.life--;
+                                // 跟随玩家
+                                this.x = player.x;
+                                this.y = player.y;
+                                
+                                // 治疗
+                                if (this.life % 10 === 0) {
+                                    player.hp = Math.min(player.maxHp, player.hp + player.maxHp * 0.02);
+                                }
+                                
+                                // 减速敌人
+                                enemies.forEach(e => {
+                                    if (Math.hypot(e.x - this.x, e.y - this.y) < this.radius) {
+                                        e.speed = e.baseSpeed * 0.5;
+                                    }
+                                });
+                            },
+                            draw() {
+                                ctx.fillStyle = `rgba(46, 204, 113, ${0.3 * (this.life / 300)})`;
+                                ctx.beginPath();
+                                ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+                                ctx.fill();
+                                
+                                ctx.strokeStyle = '#2ecc71';
+                                ctx.lineWidth = 3;
+                                ctx.setLineDash([10, 10]);
+                                ctx.stroke();
+                                ctx.setLineDash([]);
+                            }
+                        };
+                        activeSkills.push(zone);
+                    }
+                }
+            ],
+            
+            playerSkills: [],
+            
+            assignSkills(pigeonType) {
+                // 根据鸽子类型分配技能
+                const skillMap = {
+                    warrior: ['dash', 'shield_burst'],
+                    speed: ['dash', 'time_stop'],
+                    tank: ['shield_burst', 'heal_zone'],
+                    healer: ['heal_zone', 'shield_burst'],
+                    bomber: ['meteor', 'dash'],
+                    sniper: ['time_stop', 'meteor'],
+                    blade: ['dash', 'clone'],
+                    time: ['time_stop', 'clone'],
+                    double: ['clone', 'heal_zone'],
+                    magic: ['meteor', 'time_stop']
+                };
+                
+                const skillIds = skillMap[pigeonType] || ['dash', 'shield_burst'];
+                this.playerSkills = skillIds.map(id => {
+                    const skill = this.skills.find(s => s.id === id);
+                    return { ...skill, currentCooldown: 0 };
+                });
+                
+                // 显示技能按钮
+                this.updateSkillUI();
+            },
+            
+            updateSkillUI() {
+                const btn1 = document.getElementById('skill-1');
+                const btn2 = document.getElementById('skill-2');
+                
+                if (this.playerSkills[0]) {
+                    btn1.classList.remove('hidden');
+                    btn1.querySelector('.cooldown-text').textContent = this.playerSkills[0].icon;
+                }
+                
+                if (this.playerSkills[1]) {
+                    btn2.classList.remove('hidden');
+                    btn2.querySelector('.cooldown-text').textContent = this.playerSkills[1].icon;
+                }
+            },
+            
+            useSkill(index) {
+                const skill = this.playerSkills[index];
+                if (!skill || skill.currentCooldown > 0) return;
+                
+                skill.effect();
+                skill.currentCooldown = skill.cooldown;
+                
+                // 更新UI
+                this.updateCooldownUI(index);
+            },
+            
+            updateCooldownUI(index) {
+                const btn = index === 0 ? document.getElementById('skill-1') : document.getElementById('skill-2');
+                const skill = this.playerSkills[index];
+                const overlay = btn.querySelector('.cooldown-overlay');
+                const text = btn.querySelector('.cooldown-text');
+                
+                btn.classList.add('cooldown');
+                
+                const update = () => {
+                    if (skill.currentCooldown > 0) {
+                        skill.currentCooldown--;
+                        const percent = (skill.currentCooldown / skill.cooldown) * 100;
+                        overlay.style.height = percent + '%';
+                        text.textContent = Math.ceil(skill.currentCooldown / 60);
+                        
+                        requestAnimationFrame(update);
+                    } else {
+                        btn.classList.remove('cooldown');
+                        overlay.style.height = '0%';
+                        text.textContent = skill.icon;
+                    }
+                };
+                
+                update();
+            },
+            
+            update() {
+                // 更新所有激活的技能效果
+                activeSkills = activeSkills.filter(s => {
+                    if (s.update) s.update();
+                    if (s.life !== undefined && s.life <= 0) return false;
+                    if (s.dead) return false;
+                    return true;
+                });
+            },
+            
+            draw() {
+                activeSkills.forEach(s => {
+                    if (s.draw) s.draw();
+                });
+            }
+        };
+
+        // 全局变量
+        let timeStopActive = false;
+        let timeStopTimer = 0;
+        let activeSkills = [];
+
+        function createAfterimage(x, y, angle) {
+            const afterimage = {
+                x, y, angle,
+                life: 20,
+                update() { this.life--; },
+                draw() {
+                    ctx.globalAlpha = this.life / 20 * 0.5;
+                    drawPigeon(ctx, player.type, this.x, this.y, 35, this.angle);
+                    ctx.globalAlpha = 1;
+                }
+            };
+            activeSkills.push(afterimage);
+        }
+
+        // ==================== 鸽子配置 ====================
+        const pigeonTypes = {
+            warrior: {
+                name: '战鸽',
+                maxHp: 120, speed: 3.5, damage: 35, attackRange: 140, attackCooldown: 45,
+                color: '#e74c3c', unlocked: true, cost: 0,
+                desc: '高攻击 大范围<br>攻速较慢',
+                skills: ['dash', 'shield_burst']
+            },
+            speed: {
+                name: '迅鸽',
+                maxHp: 80, speed: 5.5, damage: 12, attackRange: 100, attackCooldown: 12,
+                color: '#f39c12', unlocked: true, cost: 0,
+                desc: '极速 连续攻击<br>范围较小',
+                skills: ['dash', 'time_stop']
+            },
+            tank: {
+                name: '甲鸽',
+                maxHp: 250, speed: 2.5, damage: 15, attackRange: 110, attackCooldown: 60,
+                color: '#3498db', unlocked: true, cost: 0, shield: 80,
+                desc: '超高血量 护盾<br>反击伤害',
+                skills: ['shield_burst', 'heal_zone']
+            },
+            healer: {
+                name: '愈鸽',
+                maxHp: 100, speed: 4, damage: 18, attackRange: 120, attackCooldown: 37,
+                color: '#2ecc71', unlocked: true, cost: 0, lifeSteal: 0.15,
+                desc: '持续回血 吸血(削弱)<br>均衡发展',
+                skills: ['heal_zone', 'shield_burst']
+            },
+            bomber: {
+                name: '爆鸽',
+                maxHp: 90, speed: 3.8, damage: 25, attackRange: 115, attackCooldown: 40,
+                color: '#9b59b6', unlocked: true, cost: 0, explodeDamage: 100, lives: 2,
+                desc: '每场2条命 死亡爆炸<br>处决余波',
+                skills: ['meteor', 'dash']
+            },
+            sniper: {
+                name: '狙鸽',
+                maxHp: 85, speed: 3.2, damage: 20, attackRange: 200, attackCooldown: 50,
+                color: '#1abc9c', unlocked: false, cost: 10,
+                desc: '超远范围 越远伤害越高<br>需要魂羽解锁',
+                special: 'sniper',
+                skills: ['time_stop', 'meteor']
+            },
+            blade: {
+                name: '刀鸽',
+                maxHp: 110, speed: 4.0, damage: 22, attackRange: 80, attackCooldown: 30,
+                color: '#e67e22', unlocked: false, cost: 20,
+                desc: '刀片圆形范围伤害 转速→伤害频率<br>需要魂羽解锁',
+                special: 'blade', noNormalAttack: true,
+                bladeBaseSpeed: 0.15,
+                bladeCount: 4,
+                skills: ['dash', 'clone']
+            },
+            time: {
+                name: '时鸽',
+                maxHp: 95, speed: 3.6, damage: 10, attackRange: 125, attackCooldown: 35,
+                color: '#34495e', unlocked: false, cost: 20,
+                desc: '攻击力随时间成长<br>无法获得攻击增益',
+                special: 'time', noDamageUpgrade: true,
+                skills: ['time_stop', 'clone']
+            },
+            double: {
+                name: '增鸽',
+                maxHp: 100, speed: 3.8, damage: 20, attackRange: 125, attackCooldown: 35,
+                color: '#16a085', unlocked: false, cost: 30,
+                desc: '局内增益效果×2<br>无法使用Meta升级',
+                special: 'double', noMeta: true, upgradeMultiplier: 2,
+                skills: ['clone', 'heal_zone']
+            },
+            magic: {
+                name: '魔鸽',
+                maxHp: 100, speed: 3.8, damage: 20, attackRange: 125, attackCooldown: 35,
+                color: '#8e44ad', unlocked: false, cost: 30,
+                desc: 'Meta效果×2 正12面体获取↑<br>无法获得局内增益',
+                special: 'magic', noInGameUpgrade: true, metaMultiplier: 2, dodecaBonus: 0.5,
+                skills: ['meteor', 'time_stop']
+            }
+        };
+
+        // ==================== 机制升级配置 ====================
+        const mechanicUpgrades = [
+            {
+                id: 'ricochet',
+                name: '喙击弹射',
+                icon: '🔀',
+                desc: '攻击可在敌人间弹射，每次伤害-20%',
+                rarity: 'rare',
+                isMechanic: true,
+                maxLevel: 3,
+                getDesc: (level) => `弹射${level + 1}次，伤害衰减${Math.floor(20 * Math.pow(0.8, level - 1))}%`,
+                apply: (level) => { 
+                    playerUpgrades.hasRicochet = true; 
+                    playerUpgrades.ricochetCount = level + 1; 
+                    playerUpgrades.ricochetDamageDecay = Math.pow(0.8, level);
+                }
+            },
+            {
+                id: 'frost_feather',
+                name: '冰风羽',
+                icon: '❄️',
+                desc: '攻击附加减速效果',
+                rarity: 'uncommon',
+                isMechanic: true,
+                maxLevel: 3,
+                getDesc: (level) => `减速${Math.floor(30 + (level - 1) * 15)}%，持续${2 + level * 0.5}秒`,
+                apply: (level) => { 
+                    playerUpgrades.hasFrost = true; 
+                    playerUpgrades.slowAmount = 0.3 + (level - 1) * 0.15;
+                    playerUpgrades.frostDuration = 120 + level * 30;
+                }
+            },
+            {
+                id: 'summon_flock',
+                name: '召唤鸽群',
+                icon: '🕊️',
+                desc: '召唤小弟自动攻击附近敌人',
+                rarity: 'epic',
+                isMechanic: true,
+                maxLevel: 3,
+                getDesc: (level) => `召唤${2 + level}只小弟，伤害${30 + level * 10}%`,
+                apply: (level) => { 
+                    playerUpgrades.hasSummon = true; 
+                    playerUpgrades.summonCount = 2 + level;
+                    playerUpgrades.summonDamageMult = 0.3 + level * 0.1;
+                }
+            },
+            {
+                id: 'chain_lightning',
+                name: '连锁闪电',
+                icon: '⚡',
+                desc: '攻击时概率触发闪电链',
+                rarity: 'rare',
+                isMechanic: true,
+                maxLevel: 3,
+                getDesc: (level) => `${20 + level * 10}%概率，跳跃${2 + level}次`,
+                apply: (level) => { 
+                    playerUpgrades.hasChainLightning = true; 
+                    playerUpgrades.lightningChance = 0.2 + level * 0.1; 
+                    playerUpgrades.lightningJumps = 2 + level;
+                    playerUpgrades.lightningDamageMult = 0.7 + level * 0.1;
+                }
+            },
+            {
+                id: 'explosive_beak',
+                name: '爆裂喙',
+                icon: '💥',
+                desc: '处决敌人时产生爆炸',
+                rarity: 'uncommon',
+                isMechanic: true,
+                maxLevel: 3,
+                getDesc: (level) => `爆炸范围${80 + level * 40}，伤害${Math.floor(30 + level * 20)}%`,
+                apply: (level) => { 
+                    playerUpgrades.hasExplosiveExecute = true; 
+                    playerUpgrades.explodeRadius = 80 + level * 40;
+                    playerUpgrades.explodeDamageMult = 0.3 + level * 0.2;
+                }
+            },
+            {
+                id: 'life_link',
+                name: '生命链接',
+                icon: '🔗',
+                desc: '伤害转化为治疗',
+                rarity: 'rare',
+                isMechanic: true,
+                maxLevel: 3,
+                getDesc: (level) => `伤害的${Math.floor(10 + level * 5)}%转化为全体治疗`,
+                apply: (level) => { 
+                    playerUpgrades.hasLifeLink = true; 
+                    playerUpgrades.lifeLinkPercent = 0.1 + level * 0.05;
+                }
+            },
+            {
+                id: 'thorns_aura',
+                name: '荆棘光环',
+                icon: '🌵',
+                desc: '受到伤害时反弹伤害',
+                rarity: 'rare',
+                isMechanic: true,
+                maxLevel: 3,
+                getDesc: (level) => `反弹${Math.floor(50 + level * 25)}%伤害`,
+                apply: (level) => { 
+                    playerUpgrades.hasThorns = true; 
+                    playerUpgrades.thornsPercent = 0.5 + level * 0.25;
+                }
+            },
+            {
+                id: 'blood_rage',
+                name: '血怒',
+                icon: '😡',
+                desc: '低血量时攻速提升',
+                rarity: 'epic',
+                isMechanic: true,
+                maxLevel: 3,
+                getDesc: (level) => `血量<${Math.floor(30 - (level - 1) * 5)}%时，攻速+${Math.floor(50 + level * 25)}%`,
+                apply: (level) => { 
+                    playerUpgrades.hasBloodRage = true; 
+                    playerUpgrades.bloodRageThreshold = 0.3 - (level - 1) * 0.05; 
+                    playerUpgrades.bloodRageBonus = 0.5 + level * 0.25;
+                }
+            },
+            {
+                id: 'gravity_well',
+                name: '引力井',
+                icon: '🌀',
+                desc: '攻击时牵引敌人',
+                rarity: 'legendary',
+                isMechanic: true,
+                maxLevel: 3,
+                getDesc: (level) => `牵引力度${Math.floor(30 + level * 20)}%，范围+${level * 20}%`,
+                apply: (level) => { 
+                    playerUpgrades.hasGravity = true; 
+                    playerUpgrades.gravityStrength = 0.3 + level * 0.2;
+                    playerUpgrades.gravityRangeMult = 1 + level * 0.2;
+                }
+            }
+        ];
+
+        // ==================== 游戏变量 ====================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let gameState = 'menu';
+        let score = 0, wave = 1, frameCount = 0, isPaused = false;
+        let selectedPigeon = null;
+        let player = null, enemies = [], explosions = [], attackEffects = [], hitEffects = [];
+        let totalKills = 0;
+        let summonedAllies = [];
+        
+        let spawnController = {
+            isSpawning: false, totalToSpawn: 0, spawnedCount: 0,
+            lastSpawnTime: 0, spawnInterval: 0, completed: false
+        };
+        
+        let mechanicLevels = {};
+        
+        let playerUpgrades = {
+            damageBonus: 0, rangeBonus: 0, hpBonus: 0, speedBonus: 0,
+            cooldownReduction: 0, lifeStealBonus: 0, shieldBonus: 0,
+            bladeSpeedBonus: 0,
+            hasRicochet: false, ricochetCount: 0, ricochetDamageDecay: 1,
+            hasFrost: false, slowAmount: 0, frostDuration: 120,
+            hasSummon: false, summonCount: 0, summonDamageMult: 0.3,
+            hasChainLightning: false, lightningChance: 0, lightningJumps: 0, lightningDamageMult: 0.7,
+            hasExplosiveExecute: false, explodeRadius: 0, explodeDamageMult: 0.3,
+            hasLifeLink: false, lifeLinkPercent: 0,
+            hasThorns: false, thornsPercent: 0,
+            hasBloodRage: false, bloodRageThreshold: 0.3, bloodRageBonus: 0.5,
+            hasGravity: false, gravityStrength: 0.3, gravityRangeMult: 1
+        };
+
+        // ==================== 初始化 ====================
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        
+        StorageManager.init();
+        updateMenuCurrencies();
+        renderPigeonSelect();
+        DailyChallenge.render();
+
+        // ==================== 每日挑战功能 ====================
+        function startDailyChallenge() {
+            if (StorageManager.isDailyCompleted()) {
+                alert('今日挑战已完成，请明天再来！');
+                return;
+            }
+            
+            DailyChallenge.start();
+            selectedPigeon = null;
+            
+            // 隐藏普通模式UI，显示选择提示
+            document.querySelector('.selection-hint').textContent = '👆 双击选择鸽子开始每日挑战';
+            document.querySelector('.selection-hint').style.background = 'rgba(231, 76, 60, 0.2)';
+            document.querySelector('.selection-hint').style.borderColor = '#e74c3c';
+            
+            // 滚动到鸽子选择区
+            document.querySelector('.pigeon-select').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // ==================== 鸽子绘制 ====================
+        function drawPigeon(ctx, type, x, y, size, angle = 0) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            ctx.scale(size / 40, size / 40);
+            
+            const colors = {
+                warrior: '#e74c3c', speed: '#f39c12', tank: '#3498db',
+                healer: '#2ecc71', bomber: '#9b59b6', sniper: '#1abc9c',
+                blade: '#e67e22', time: '#34495e', double: '#16a085', magic: '#8e44ad'
+            };
+            ctx.fillStyle = colors[type] || '#95a5a6';
+            
+            // 身体
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 20, 15, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 头
+            ctx.beginPath();
+            ctx.arc(15, -5, 10, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 眼睛
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(18, -7, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(19, -8, 1, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 喙
+            ctx.fillStyle = '#f39c12';
+            ctx.beginPath();
+            ctx.moveTo(23, -5);
+            ctx.lineTo(30, -2);
+            ctx.lineTo(23, 1);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 翅膀
+            ctx.fillStyle = colors[type] || '#95a5a6';
+            ctx.beginPath();
+            ctx.ellipse(-5, 5, 15, 8, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 尾巴
+            ctx.beginPath();
+            ctx.moveTo(-20, 0);
+            ctx.lineTo(-30, -8);
+            ctx.lineTo(-30, 8);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 特殊标记
+            if (type === 'warrior') {
+                ctx.fillStyle = '#e74c3c';
+                ctx.beginPath();
+                ctx.arc(25, 10, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            } else if (type === 'speed') {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-5, -5);
+                ctx.lineTo(5, 0);
+                ctx.lineTo(-2, 0);
+                ctx.lineTo(5, 10);
+                ctx.stroke();
+            } else if (type === 'tank') {
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.beginPath();
+                ctx.arc(0, 0, 25, 0, Math.PI * 2);
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            } else if (type === 'healer') {
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(-2, -8, 4, 16);
+                ctx.fillRect(-8, -2, 16, 4);
+            } else if (type === 'bomber') {
+                ctx.strokeStyle = '#e74c3c';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, -15);
+                ctx.quadraticCurveTo(5, -25, 10, -20);
+                ctx.stroke();
+                ctx.fillStyle = '#f39c12';
+                ctx.beginPath();
+                ctx.arc(10, -20, 3, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (type === 'sniper') {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, 0, 28, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(-20, 0);
+                ctx.lineTo(20, 0);
+                ctx.moveTo(0, -20);
+                ctx.lineTo(0, 20);
+                ctx.stroke();
+            } else if (type === 'blade') {
+                ctx.fillStyle = '#bdc3c7';
+                for (let i = 0; i < 4; i++) {
+                    ctx.save();
+                    ctx.rotate((i * Math.PI) / 2);
+                    ctx.beginPath();
+                    ctx.moveTo(25, 0);
+                    ctx.lineTo(35, -5);
+                    ctx.lineTo(35, 5);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                }
+            } else if (type === 'time') {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, 0, 12, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(0, -8);
+                ctx.moveTo(0, 0);
+                ctx.lineTo(6, 0);
+                ctx.stroke();
+            } else if (type === 'double') {
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('×2', 0, 5);
+            } else if (type === 'magic') {
+                ctx.fillStyle = '#f1c40f';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('✡', 0, 5);
+            }
+            
+            ctx.restore();
+        }
+
+        // ==================== 召唤物类 ====================
+        class SummonedAlly {
+            constructor(x, y, master) {
+                this.x = x;
+                this.y = y;
+                this.master = master;
+                this.radius = 12;
+                this.angle = 0;
+                this.attackCooldown = 0;
+                this.maxAttackCooldown = 45;
+                this.orbitAngle = Math.random() * Math.PI * 2;
+                this.orbitRadius = 60;
+                this.damage = Math.floor(master.damage * (playerUpgrades.summonDamageMult || 0.3));
+            }
+            
+            update() {
+                this.orbitAngle += 0.02;
+                const targetX = this.master.x + Math.cos(this.orbitAngle) * this.orbitRadius;
+                const targetY = this.master.y + Math.sin(this.orbitAngle) * this.orbitRadius;
+                
+                this.x += (targetX - this.x) * 0.1;
+                this.y += (targetY - this.y) * 0.1;
+                
+                if (this.attackCooldown <= 0) {
+                    let nearest = null;
+                    let nearestDist = Infinity;
+                    
+                    enemies.forEach(e => {
+                        if (!e.dead) {
+                            const dist = Math.hypot(e.x - this.x, e.y - this.y);
+                            if (dist < 80 && dist < nearestDist) {
+                                nearestDist = dist;
+                                nearest = e;
+                            }
+                        }
+                    });
+                    
+                    if (nearest) {
+                        nearest.takeDamage(this.damage);
+                        createHitEffect(nearest.x, nearest.y);
+                        this.attackCooldown = this.maxAttackCooldown;
+                    }
+                } else {
+                    this.attackCooldown--;
+                }
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                ctx.fillStyle = '#95a5a6';
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(3, -3, 2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#f39c12';
+                ctx.beginPath();
+                ctx.moveTo(5, 0);
+                ctx.lineTo(10, 3);
+                ctx.lineTo(5, 6);
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
+
+        // ==================== 玩家类 ====================
+        class Player {
+            constructor(type) {
+                const config = pigeonTypes[type];
+                const meta = StorageManager.getMetaUpgrades();
+                const metaMult = config.metaMultiplier || 1;
+                
+                this.type = type;
+                this.x = canvas.width / 2;
+                this.y = canvas.height / 2;
+                this.radius = 18;
+                this.angle = 0;
+                
+                const dmgBonus = config.noMeta ? 0 : StorageManager.getMetaBonus('initialDamage') * metaMult;
+                const hpBonus = config.noMeta ? 0 : StorageManager.getMetaBonus('initialHp') * metaMult;
+                const spdBonus = config.noMeta ? 0 : StorageManager.getMetaBonus('initialSpeed') * metaMult;
+                
+                this.baseMaxHp = config.maxHp * (1 + hpBonus);
+                this.baseSpeed = config.speed * (1 + spdBonus);
+                this.baseDamage = config.damage * (1 + dmgBonus);
+                this.baseAttackRange = config.attackRange;
+                this.baseAttackCooldown = config.attackCooldown;
+                this.baseShield = (config.shield || 0) + (config.noMeta ? 0 : StorageManager.getMetaBonus('startShield') * metaMult);
+                
+                if (type === 'blade') {
+                    this.baseBladeSpeed = config.bladeBaseSpeed;
+                    this.bladeDamageInterval = 15;
+                }
+                
+                this.applyUpgrades();
+                
+                this.hp = this.maxHp;
+                this.shield = this.maxShield;
+                this.attackCooldown = 0;
+                this.lives = config.lives || 1;
+                this.maxLives = this.lives;
+                this.currentLives = this.lives;
+                
+                this.timeGrowth = 0;
+                this.maxTimeGrowth = 3000;
+                
+                this.bladeAngle = 0;
+                this.lastBladeDamageTime = 0;
+                
+                // 技能相关
+                this.isDashing = false;
+                this.invincible = false;
+                this.dashTimer = 0;
+                
+                if (playerUpgrades.hasSummon && summonedAllies.length === 0) {
+                    for (let i = 0; i < playerUpgrades.summonCount; i++) {
+                        summonedAllies.push(new SummonedAlly(this.x, this.y, this));
+                    }
+                }
+                
+                this.updateLivesUI();
+                this.updateTimeGrowthUI();
+                this.updateBladeSpeedUI();
+                this.updateMechanicIndicators();
+            }
+            
+            applyUpgrades() {
+                const config = pigeonTypes[this.type];
+                const mult = config.upgradeMultiplier || 1;
+                
+                let cooldownMult = 1 - playerUpgrades.cooldownReduction * mult;
+                if (playerUpgrades.hasBloodRage && this.hp / this.maxHp < playerUpgrades.bloodRageThreshold) {
+                    cooldownMult *= (1 - playerUpgrades.bloodRageBonus);
+                }
+                
+                this.maxHp = Math.floor(this.baseMaxHp * (1 + playerUpgrades.hpBonus * mult));
+                this.speed = this.baseSpeed * (1 + playerUpgrades.speedBonus * mult);
+                this.damage = Math.floor(this.baseDamage * (1 + playerUpgrades.damageBonus * mult));
+                this.attackRange = this.baseAttackRange * (1 + playerUpgrades.rangeBonus * mult);
+                this.maxAttackCooldown = Math.floor(this.baseAttackCooldown * cooldownMult);
+                this.maxShield = this.baseShield + playerUpgrades.shieldBonus * mult;
+                
+                if (this.type === 'blade') {
+                    const speedMult = 1 + (playerUpgrades.cooldownReduction * mult);
+                    this.bladeSpeed = this.baseBladeSpeed * speedMult;
+                    this.bladeDamageInterval = Math.max(3, Math.floor(15 / speedMult));
+                }
+            }
+            
+            updateLivesUI() {
+                const indicator = document.getElementById('lives-indicator');
+                if (this.maxLives > 1) {
+                    indicator.style.display = 'block';
+                    let hearts = '';
+                    for (let i = 0; i < this.maxLives; i++) {
+                        hearts += `<span class="life-icon ${i >= this.currentLives ? 'life-lost' : ''}">❤️</span>`;
+                    }
+                    indicator.innerHTML = '生命: ' + hearts;
+                } else {
+                    indicator.style.display = 'none';
+                }
+            }
+            
+            updateTimeGrowthUI() {
+                const ui = document.getElementById('time-growth-indicator');
+                if (this.type === 'time') {
+                    ui.style.display = 'block';
+                    const percent = Math.min(100, (this.timeGrowth / this.maxTimeGrowth) * 100);
+                    document.getElementById('growth-fill').style.width = percent + '%';
+                    const bonus = Math.floor((this.timeGrowth / this.maxTimeGrowth) * 200);
+                    document.getElementById('growth-bonus').textContent = bonus;
+                } else {
+                    ui.style.display = 'none';
+                }
+            }
+            
+            updateBladeSpeedUI() {
+                const ui = document.getElementById('blade-speed-indicator');
+                if (this.type === 'blade') {
+                    ui.style.display = 'block';
+                    const speedPercent = Math.min(100, (this.bladeSpeed / this.baseBladeSpeed) * 100);
+                    document.getElementById('blade-speed-fill').style.width = speedPercent + '%';
+                    document.getElementById('blade-speed-value').textContent = Math.floor(speedPercent);
+                } else {
+                    ui.style.display = 'none';
+                }
+            }
+            
+            updateMechanicIndicators() {
+                const container = document.getElementById('mechanic-indicators');
+                container.innerHTML = '';
+                
+                const mechanics = [
+                    { key: 'hasRicochet', name: '弹射', levelKey: 'ricochet' },
+                    { key: 'hasFrost', name: '冰冻', levelKey: 'frost_feather' },
+                    { key: 'hasSummon', name: '召唤', levelKey: 'summon_flock' },
+                    { key: 'hasChainLightning', name: '闪电', levelKey: 'chain_lightning' },
+                    { key: 'hasExplosiveExecute', name: '爆裂', levelKey: 'explosive_beak' },
+                    { key: 'hasLifeLink', name: '链接', levelKey: 'life_link' },
+                    { key: 'hasThorns', name: '荆棘', levelKey: 'thorns_aura' },
+                    { key: 'hasBloodRage', name: '血怒', levelKey: 'blood_rage' },
+                    { key: 'hasGravity', name: '引力', levelKey: 'gravity_well' }
+                ];
+                
+                mechanics.forEach(m => {
+                    if (playerUpgrades[m.key]) {
+                        const level = mechanicLevels[m.levelKey] || 1;
+                        const badge = document.createElement('div');
+                        badge.className = 'mechanic-badge-active';
+                        badge.innerHTML = `
+                            ${m.name}
+                            <span class="mechanic-level-badge">Lv.${level}</span>
+                        `;
+                        container.appendChild(badge);
+                    }
+                });
+            }
+            
+            resetLivesForNewWave() {
+                if (pigeonTypes[this.type].lives) {
+                    this.currentLives = this.maxLives;
+                    this.updateLivesUI();
+                }
+            }
+            
+            update() {
+                if (timeStopActive) return; // 时间停止时玩家不能动
+                
+                if (joystickData.active) {
+                    let moveX = joystickData.x;
+                    let moveY = joystickData.y;
+                    
+                    // 反向控制debuff
+                    if (DailyChallenge.modifiers.find(m => m.id === 'reverse_control')) {
+                        moveX = -moveX;
+                        moveY = -moveY;
+                    }
+                    
+                    this.x += moveX * this.speed;
+                    this.y += moveY * this.speed;
+                    this.angle = Math.atan2(moveY, moveX);
+                    this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                    this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+                }
+                
+                if (this.type === 'time' && this.timeGrowth < this.maxTimeGrowth) {
+                    this.timeGrowth++;
+                    const growthBonus = 1 + (this.timeGrowth / this.maxTimeGrowth) * 2;
+                    this.damage = Math.floor(this.baseDamage * growthBonus * (1 + playerUpgrades.damageBonus));
+                    this.updateTimeGrowthUI();
+                }
+                
+                if (this.type === 'blade') {
+                    this.bladeAngle += this.bladeSpeed;
+                    this.bladeAttack();
+                }
+                
+                if (playerUpgrades.hasBloodRage) {
+                    const wasBloodRage = this.isBloodRage;
+                    this.isBloodRage = this.hp / this.maxHp < playerUpgrades.bloodRageThreshold;
+                    if (wasBloodRage !== this.isBloodRage) {
+                        this.applyUpgrades();
+                    }
+                }
+                
+                if (this.attackCooldown > 0) {
+                    this.attackCooldown--;
+                    const cooldownPercent = this.attackCooldown / this.maxAttackCooldown;
+                    attackBtn.style.opacity = 0.5 + (1 - cooldownPercent) * 0.5;
+                    attackBtn.classList.add('cooldown');
+                    attackStatus.textContent = `冷却 ${(this.attackCooldown / 60).toFixed(1)}s`;
+                } else {
+                    attackBtn.style.opacity = 1;
+                    attackBtn.classList.remove('cooldown');
+                    attackStatus.textContent = '就绪';
+                }
+                
+                if (this.type === 'healer' && frameCount % 60 === 0 && !DailyChallenge.modifiers.find(m => m.id === 'no_heal')) {
+                    this.hp = Math.min(this.maxHp, this.hp + 2);
+                }
+                
+                if (this.maxShield > 0 && this.shield < this.maxShield && frameCount % 90 === 0) {
+                    this.shield = Math.min(this.maxShield, this.shield + 5);
+                }
+                
+                summonedAllies.forEach(ally => ally.update());
+                
+                // 更新技能系统
+                SkillSystem.update();
+            }
+            
+            bladeAttack() {
+                if (frameCount - this.lastBladeDamageTime < this.bladeDamageInterval) return;
+                
+                const config = pigeonTypes.blade;
+                const bladeRadius = this.attackRange;
+                let hitAny = false;
+                const hitEnemies = [];
+                
+                enemies.forEach(enemy => {
+                    const dist = Math.hypot(enemy.x - this.x, enemy.y - this.y);
+                    if (dist < bladeRadius + enemy.radius) {
+                        let dmg = Math.floor(this.damage * 0.6);
+                        
+                        if (playerUpgrades.hasBloodRage && this.hp / this.maxHp < playerUpgrades.bloodRageThreshold) {
+                            dmg = Math.floor(dmg * (1 + playerUpgrades.bloodRageBonus));
+                        }
+                        
+                        let isExecute = false;
+                        if (enemy.hp / enemy.maxHp < 0.2 && enemy.hp > 0) {
+                            dmg = enemy.hp;
+                            isExecute = true;
+                            showDamage(enemy.x, enemy.y - 30, '处决!');
+                        }
+                        
+                        hitEnemies.push({ 
+                            enemy: enemy, 
+                            damage: dmg, 
+                            isExecute: isExecute 
+                        });
+                        
+                        enemy.takeDamage(dmg);
+                        hitAny = true;
+                        
+                        if (playerUpgrades.hasFrost && !isExecute) {
+                            enemy.speed *= (1 - playerUpgrades.slowAmount);
+                            enemy.frostTimer = playerUpgrades.frostDuration || 120;
+                        }
+                        
+                        if (playerUpgrades.hasChainLightning && Math.random() < playerUpgrades.lightningChance && !isExecute) {
+                            this.chainLightning(enemy, playerUpgrades.lightningJumps, Math.floor(dmg * playerUpgrades.lightningDamageMult));
+                        }
+                        
+                        if (playerUpgrades.hasExplosiveExecute && isExecute) {
+                            const explodeDmg = enemy.maxHp * playerUpgrades.explodeDamageMult;
+                            createExplosion(enemy.x, enemy.y, playerUpgrades.explodeRadius, explodeDmg);
+                        }
+                        
+                        if (playerUpgrades.hasLifeLink) {
+                            const healAmount = Math.floor(dmg * playerUpgrades.lifeLinkPercent);
+                            this.hp = Math.min(this.maxHp, this.hp + healAmount);
+                            if (healAmount > 0 && frameCount % 10 === 0) {
+                                showDamage(this.x, this.y - 40, `+${healAmount}🔗`);
+                            }
+                        }
+                        
+                        const totalLifeSteal = (config.lifeSteal || 0) + playerUpgrades.lifeStealBonus;
+                        if (totalLifeSteal > 0) {
+                            const heal = Math.floor(dmg * totalLifeSteal);
+                            this.hp = Math.min(this.maxHp, this.hp + heal);
+                        }
+                    }
+                });
+                
+                if (playerUpgrades.hasRicochet && hitEnemies.length > 0) {
+                    hitEnemies.forEach(hit => {
+                        if (!hit.isExecute) {
+                            this.ricochetAttack([hit], playerUpgrades.ricochetCount, playerUpgrades.ricochetDamageDecay, 'blade');
+                        }
+                    });
+                }
+                
+                if (playerUpgrades.hasGravity) {
+                    const gravityRange = bladeRadius * (playerUpgrades.gravityRangeMult || 1) * 1.3;
+                    enemies.forEach(enemy => {
+                        if (enemy.dead) return;
+                        const dist = Math.hypot(enemy.x - this.x, enemy.y - this.y);
+                        if (dist < gravityRange && dist > bladeRadius) {
+                            const dx = this.x - enemy.x;
+                            const dy = this.y - enemy.y;
+                            const force = playerUpgrades.gravityStrength * 0.1;
+                            enemy.x += dx * force;
+                            enemy.y += dy * force;
+                            
+                            if (frameCount % 5 === 0) {
+                                ctx.strokeStyle = 'rgba(155, 89, 182, 0.3)';
+                                ctx.lineWidth = 1;
+                                ctx.beginPath();
+                                ctx.moveTo(enemy.x, enemy.y);
+                                ctx.lineTo(this.x, this.y);
+                                ctx.stroke();
+                            }
+                        }
+                    });
+                }
+                
+                if (hitAny) {
+                    this.lastBladeDamageTime = frameCount;
+                    for (let i = 0; i < 4; i++) {
+                        const angle = this.bladeAngle + (i * Math.PI / 2);
+                        const effectX = this.x + Math.cos(angle) * bladeRadius * 0.7;
+                        const effectY = this.y + Math.sin(angle) * bladeRadius * 0.7;
+                        createHitEffect(effectX, effectY);
+                    }
+                }
+            }
+            
+            calculateDamage(enemy) {
+                const dist = Math.hypot(enemy.x - this.x, enemy.y - this.y);
+                let dmg = this.damage;
+                
+                if (this.type === 'sniper') {
+                    const distRatio = Math.min(1, dist / this.attackRange);
+                    dmg = Math.floor(dmg * (0.5 + distRatio * 1.5));
+                } else {
+                    const distanceRatio = 1 - (dist / (this.attackRange + enemy.radius));
+                    dmg = Math.floor(dmg * (0.5 + 0.5 * distanceRatio));
+                    if (distanceRatio > 0.5) {
+                        const closeBonus = Math.min(0.5, (distanceRatio - 0.5) * 2);
+                        dmg = Math.floor(dmg * (1 + closeBonus));
+                    }
+                }
+                
+                return { damage: dmg, distanceRatio: dist / this.attackRange };
+            }
+            
+            attack() {
+                if (pigeonTypes[this.type].noNormalAttack) return;
+                
+                this.attackCooldown = this.maxAttackCooldown;
+                let hitCount = 0;
+                const executedEnemies = [];
+                const doubleHit = Math.random() < 0.2;
+                const attackCount = doubleHit ? 2 : 1;
+                
+                if (playerUpgrades.hasGravity) {
+                    const gravityRange = this.attackRange * (playerUpgrades.gravityRangeMult || 1);
+                    enemies.forEach(enemy => {
+                        const dist = Math.hypot(enemy.x - this.x, enemy.y - this.y);
+                        if (dist < gravityRange + enemy.radius) {
+                            const dx = this.x - enemy.x;
+                            const dy = this.y - enemy.y;
+                            enemy.x += dx * playerUpgrades.gravityStrength * 0.1;
+                            enemy.y += dy * playerUpgrades.gravityStrength * 0.1;
+                        }
+                    });
+                }
+                
+                for (let atk = 0; atk < attackCount; atk++) {
+                    setTimeout(() => {
+                        let hitEnemies = [];
+                        
+                        enemies.forEach(enemy => {
+                            const dist = Math.hypot(enemy.x - this.x, enemy.y - this.y);
+                            if (dist < this.attackRange + enemy.radius) {
+                                const dmgInfo = this.calculateDamage(enemy);
+                                let dmg = dmgInfo.damage;
+                                
+                                const isCrit = Math.random() < 0.1;
+                                if (isCrit) {
+                                    dmg = Math.floor(dmg * 1.5);
+                                    showDamage(enemy.x, enemy.y - 20, '暴击!');
+                                }
+                                
+                                let isExecute = false;
+                                if (enemy.hp / enemy.maxHp < 0.2) {
+                                    dmg = enemy.hp;
+                                    isExecute = true;
+                                    executedEnemies.push({ x: enemy.x, y: enemy.y, hp: enemy.maxHp, enemy: enemy });
+                                    showDamage(enemy.x, enemy.y - 30, '处决!');
+                                }
+                                
+                                if (this.type === 'sniper' && dmgInfo.distanceRatio > 0.8 && !isExecute) {
+                                    showDamage(enemy.x, enemy.y - 25, '狙击!');
+                                }
+                                
+                                enemy.takeDamage(dmg);
+                                hitEnemies.push({ enemy: enemy, damage: dmg, isExecute: isExecute });
+                                hitCount++;
+                                
+                                if (playerUpgrades.hasFrost && !isExecute) {
+                                    enemy.speed *= (1 - playerUpgrades.slowAmount);
+                                    enemy.frostTimer = playerUpgrades.frostDuration || 120;
+                                }
+                                
+                                if (playerUpgrades.hasChainLightning && Math.random() < playerUpgrades.lightningChance && !isExecute) {
+                                    this.chainLightning(enemy, playerUpgrades.lightningJumps, dmg * playerUpgrades.lightningDamageMult);
+                                }
+                                
+                                const config = pigeonTypes[this.type];
+                                const totalLifeSteal = (config.lifeSteal || 0) + playerUpgrades.lifeStealBonus;
+                                if (totalLifeSteal > 0) {
+                                    const heal = Math.floor(dmg * totalLifeSteal);
+                                    this.hp = Math.min(this.maxHp, this.hp + heal);
+                                }
+                            }
+                        });
+                        
+                        if (playerUpgrades.hasRicochet && hitEnemies.length > 0) {
+                            hitEnemies.forEach(hit => {
+                                if (!hit.isExecute) {
+                                    this.ricochetAttack([hit], playerUpgrades.ricochetCount, playerUpgrades.ricochetDamageDecay, 'attack');
+                                }
+                            });
+                        }
+                        
+                        if (playerUpgrades.hasExplosiveExecute) {
+                            executedEnemies.forEach(exec => {
+                                if (exec.isExecute) {
+                                    const explodeDmg = exec.hp * playerUpgrades.explodeDamageMult;
+                                    createExplosion(exec.x, exec.y, playerUpgrades.explodeRadius, explodeDmg);
+                                }
+                            });
+                        }
+                        
+                        if (playerUpgrades.hasLifeLink && hitCount > 0) {
+                            const totalDamage = hitEnemies.reduce((sum, h) => sum + h.damage, 0);
+                            const healAmount = Math.floor(totalDamage * playerUpgrades.lifeLinkPercent);
+                            this.hp = Math.min(this.maxHp, this.hp + healAmount);
+                            if (summonedAllies.length > 0) {
+                                showDamage(this.x, this.y - 40, `+${healAmount}链接`);
+                            }
+                        }
+                        
+                        createAttackEffect(this.x, this.y, this.attackRange, this.color, hitCount);
+                    }, atk * 100);
+                }
+                
+                if (doubleHit) showDamage(this.x, this.y - 30, '双重打击!');
+                if (this.type === 'tank' && hitCount > 0) this.shield = Math.min(this.maxShield, this.shield + 5);
+            }
+            
+            ricochetAttack(hitEnemies, bouncesLeft, damageMult, source = 'attack') {
+                if (bouncesLeft <= 0) return;
+                
+                hitEnemies.forEach(hit => {
+                    let nearest = null;
+                    let nearestDist = 150;
+                    
+                    enemies.forEach(e => {
+                        if (!e.dead && e !== hit.enemy) {
+                            const dist = Math.hypot(e.x - hit.enemy.x, e.y - hit.enemy.y);
+                            if (dist < nearestDist) {
+                                nearestDist = dist;
+                                nearest = e;
+                            }
+                        }
+                    });
+                    
+                    if (nearest) {
+                        const bounceDmg = Math.floor(hit.damage * damageMult);
+                        nearest.takeDamage(bounceDmg);
+                        showDamage(nearest.x, nearest.y, '弹射' + bounceDmg);
+                        
+                        ctx.strokeStyle = source === 'blade' ? '#e67e22' : '#ffd700';
+                        ctx.lineWidth = source === 'blade' ? 3 : 2;
+                        ctx.shadowBlur = 5;
+                        ctx.shadowColor = ctx.strokeStyle;
+                        ctx.beginPath();
+                        ctx.moveTo(hit.enemy.x, hit.enemy.y);
+                        ctx.lineTo(nearest.x, nearest.y);
+                        ctx.stroke();
+                        ctx.shadowBlur = 0;
+                        
+                        if (playerUpgrades.hasFrost) {
+                            nearest.speed *= (1 - playerUpgrades.slowAmount * 0.5);
+                            nearest.frostTimer = (playerUpgrades.frostDuration || 120) * 0.5;
+                        }
+                        
+                        if (bouncesLeft > 1) {
+                            setTimeout(() => {
+                                this.ricochetAttack([{ enemy: nearest, damage: bounceDmg }], bouncesLeft - 1, damageMult, source);
+                            }, 80);
+                        }
+                    }
+                });
+            }
+            
+            chainLightning(sourceEnemy, jumpsLeft, damage) {
+                if (jumpsLeft <= 0 || damage < 5) return;
+                
+                let nearest = null;
+                let nearestDist = 120;
+                
+                enemies.forEach(e => {
+                    if (!e.dead && e !== sourceEnemy) {
+                        const dist = Math.hypot(e.x - sourceEnemy.x, e.y - sourceEnemy.y);
+                        if (dist < nearestDist) {
+                            nearestDist = dist;
+                            nearest = e;
+                        }
+                    }
+                });
+                
+                if (nearest) {
+                    nearest.takeDamage(Math.floor(damage));
+                    
+                    ctx.strokeStyle = '#f1c40f';
+                    ctx.lineWidth = 3;
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#f1c40f';
+                    ctx.beginPath();
+                    ctx.moveTo(sourceEnemy.x, sourceEnemy.y);
+                    
+                    const midX = (sourceEnemy.x + nearest.x) / 2 + (Math.random() - 0.5) * 30;
+                    const midY = (sourceEnemy.y + nearest.y) / 2 + (Math.random() - 0.5) * 30;
+                    ctx.lineTo(midX, midY);
+                    ctx.lineTo(nearest.x, nearest.y);
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                    
+                    showDamage(nearest.x, nearest.y, '⚡' + Math.floor(damage));
+                    
+                    setTimeout(() => {
+                        this.chainLightning(nearest, jumpsLeft - 1, damage * 0.8);
+                    }, 100);
+                }
+            }
+            
+            takeDamage(amount) {
+                if (this.invincible || this.isDashing) return;
+                
+                if (playerUpgrades.hasThorns) {
+                    const thornsDmg = Math.floor(amount * playerUpgrades.thornsPercent);
+                    enemies.forEach(e => {
+                        const dist = Math.hypot(e.x - this.x, e.y - this.y);
+                        if (!e.dead && dist < this.attackRange) {
+                            e.takeDamage(thornsDmg);
+                            showDamage(e.x, e.y, '荆棘' + thornsDmg);
+                        }
+                    });
+                }
+                
+                if (this.shield > 0) {
+                    if (this.shield >= amount) {
+                        this.shield -= amount;
+                        return;
+                    } else {
+                        amount -= this.shield;
+                        this.shield = 0;
+                    }
+                }
+                
+                if (this.type === 'tank') amount = Math.floor(amount * 0.6);
+                
+                this.hp -= amount;
+                createHitEffect(this.x, this.y);
+                
+                if (this.hp <= 0) {
+                    const reviveChance = StorageManager.getMetaBonus('reviveChance');
+                    if (Math.random() < reviveChance && this.currentLives === this.maxLives) {
+                        this.hp = this.maxHp * 0.3;
+                        showDamage(this.x, this.y - 40, 'Meta复活!');
+                        return;
+                    }
+                    
+                    if (this.currentLives > 1) {
+                        this.currentLives--;
+                        this.hp = this.maxHp * 0.5;
+                        if (this.type === 'bomber') {
+                            createExplosion(this.x, this.y, 200, pigeonTypes.bomber.explodeDamage);
+                        }
+                        showDamage(this.x, this.y - 40, `复活! (${this.currentLives}/${this.maxLives})`);
+                        this.updateLivesUI();
+                        this.shield = 50;
+                    } else {
+                        if (this.type === 'bomber') {
+                            createExplosion(this.x, this.y, 200, pigeonTypes.bomber.explodeDamage);
+                        }
+                        gameOver();
+                    }
+                }
+            }
+            
+            draw() {
+                // 无敌闪烁效果
+                if (this.invincible && Math.floor(frameCount / 4) % 2 === 0) {
+                    ctx.globalAlpha = 0.5;
+                }
+                
+                if (this.attackCooldown > this.maxAttackCooldown - 10) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.attackRange, 0, Math.PI * 2);
+                    ctx.fillStyle = this.color + '15';
+                    ctx.fill();
+                    ctx.strokeStyle = this.color + '40';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.attackRange, 0, Math.PI * 2);
+                ctx.strokeStyle = this.color + '20';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 5]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.attackRange * 0.3, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([3, 3]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                if (this.shield > 0) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius + 10, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(52, 152, 219, ${0.3 + (this.shield / this.maxShield) * 0.5})`;
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+                }
+                
+                if (playerUpgrades.hasBloodRage && this.isBloodRage) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius + 15, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(231, 76, 60, ${0.5 + Math.sin(frameCount * 0.2) * 0.3})`;
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
+                
+                if (this.type === 'blade') {
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    
+                    ctx.rotate(this.bladeAngle);
+                    ctx.strokeStyle = '#bdc3c7';
+                    ctx.lineWidth = 3;
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#e74c3c';
+                    
+                    const bladeRadius = this.attackRange;
+                    const bladeCount = 4;
+                    
+                    for (let i = 0; i < bladeCount; i++) {
+                        ctx.save();
+                        ctx.rotate((i * Math.PI * 2) / bladeCount);
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(bladeRadius * 0.3, -8);
+                        ctx.lineTo(bladeRadius, -5);
+                        ctx.lineTo(bladeRadius, 5);
+                        ctx.lineTo(bladeRadius * 0.3, 8);
+                        ctx.closePath();
+                        ctx.fillStyle = 'rgba(189, 195, 199, 0.8)';
+                        ctx.fill();
+                        ctx.stroke();
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(bladeRadius * 0.5, 0);
+                        ctx.lineTo(bladeRadius, 0);
+                        ctx.strokeStyle = 'rgba(231, 76, 60, 0.6)';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        
+                        ctx.restore();
+                    }
+                    
+                    ctx.rotate(-this.bladeAngle);
+                    ctx.beginPath();
+                    ctx.arc(0, 0, bladeRadius, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(230, 126, 34, 0.4)';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([15, 10]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    ctx.beginPath();
+                    ctx.arc(0, 0, bladeRadius * 0.7, this.bladeAngle, this.bladeAngle + Math.PI * 1.5);
+                    ctx.strokeStyle = 'rgba(230, 126, 34, 0.6)';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+                    
+                    ctx.restore();
+                }
+                
+                summonedAllies.forEach(ally => ally.draw());
+                
+                drawPigeon(ctx, this.type, this.x, this.y, 40, this.angle);
+                
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // ==================== 其他类定义 ====================
+        class AttackEffect {
+            constructor(x, y, range, color, intensity) {
+                this.x = x; this.y = y; this.range = range; this.color = color;
+                this.life = 15; this.maxLife = 15; this.intensity = intensity;
+            }
+            update() { this.life--; }
+            draw() {
+                const alpha = this.life / this.maxLife;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.range * (1 + (1 - alpha) * 0.3), 0, Math.PI * 2);
+                ctx.fillStyle = this.color + Math.floor(alpha * 30).toString(16).padStart(2, '0');
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.range * (2 - alpha), 0, Math.PI * 2);
+                ctx.strokeStyle = this.color + Math.floor(alpha * 50).toString(16).padStart(2, '0');
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+        }
+
+        class HitEffect {
+            constructor(x, y) { this.x = x; this.y = y; this.life = 10; }
+            update() { this.life--; }
+            draw() {
+                if (this.life <= 0) return;
+                ctx.fillStyle = `rgba(255, 0, 0, ${this.life / 10})`;
+                ctx.fillRect(this.x - 30, this.y - 30, 60, 60);
+            }
+        }
+
+        class Explosion {
+            constructor(x, y, radius, damage) {
+                this.x = x; this.y = y; this.radius = radius; this.maxRadius = radius;
+                this.damage = damage; this.life = 30; this.dead = false;
+                if (damage > 0) {
+                    enemies.forEach(e => {
+                        if (!e.dead) {
+                            const d = Math.hypot(e.x - x, e.y - y);
+                            if (d < radius) e.takeDamage(damage * (1 - d/radius));
+                        }
+                    });
+                }
+            }
+            update() { this.life--; if (this.life <= 0) this.dead = true; }
+            draw() {
+                const alpha = this.life / 30;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.maxRadius * (1 - alpha * 0.5), 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, ${100 + alpha * 155}, 0, ${alpha * 0.6})`;
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.maxRadius * alpha, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 200, 0, ${alpha})`;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+        }
+
+        class Enemy {
+            constructor(type) {
+                this.type = type; this.dead = false;
+                this.baseSpeed = 0;
+                this.frostTimer = 0;
+                
+                const side = Math.floor(Math.random() * 4);
+                switch(side) {
+                    case 0: this.x = Math.random() * canvas.width; this.y = -40; break;
+                    case 1: this.x = canvas.width + 40; this.y = Math.random() * canvas.height; break;
+                    case 2: this.x = Math.random() * canvas.width; this.y = canvas.height + 40; break;
+                    case 3: this.x = -40; this.y = Math.random() * canvas.height; break;
+                }
+                
+                const waveMultiplier = Math.pow(1.2, wave - 1);
+                const damageMultiplier = 1 + (wave - 1) * 0.1;
+                
+                // 每日挑战：敌人强化
+                const enemyHpMod = DailyChallenge.modifiers.find(m => m.id === 'enemy_hp') ? 1.4 : 1;
+                const enemySpeedMod = DailyChallenge.modifiers.find(m => m.id === 'enemy_speed') ? 1.3 : 1;
+                
+                switch(type) {
+                    case 'square':
+                        this.name = '正方形'; this.hp = Math.floor(40 * waveMultiplier * enemyHpMod);
+                        this.maxHp = this.hp; this.speed = (1.8 + (wave - 1) * 0.1) * enemySpeedMod;
+                        this.radius = 18; this.color = '#e74c3c'; this.shape = 'square';
+                        this.damage = Math.floor(12 * damageMultiplier);
+                        break;
+                    case 'triangle':
+                        this.name = '三角形'; this.hp = Math.floor(100 * waveMultiplier * enemyHpMod);
+                        this.maxHp = this.hp; this.speed = (1.0 + (wave - 1) * 0.05) * enemySpeedMod;
+                        this.radius = 22; this.color = '#f39c12'; this.shape = 'triangle';
+                        this.damage = Math.floor(20 * damageMultiplier);
+                        break;
+                    case 'parallelogram':
+                        this.name = '平行四边形'; this.hp = Math.floor(25 * waveMultiplier * enemyHpMod);
+                        this.maxHp = this.hp; this.speed = (3.5 + (wave - 1) * 0.15) * enemySpeedMod;
+                        this.radius = 16; this.color = '#9b59b6'; this.shape = 'parallelogram';
+                        this.damage = Math.floor(8 * damageMultiplier);
+                        break;
+                    case 'crescent':
+                        this.name = '月牙形'; this.hp = Math.floor(60 * waveMultiplier * enemyHpMod);
+                        this.maxHp = this.hp; this.speed = (2.8 + (wave - 1) * 0.1) * enemySpeedMod;
+                        this.radius = 18; this.color = '#ecf0f1'; this.shape = 'crescent';
+                        this.healRadius = 120; this.healAmount = Math.floor(2 * waveMultiplier);
+                        this.damage = Math.floor(10 * damageMultiplier);
+                        break;
+                    case 'circle':
+                        this.name = '圆形'; this.hp = Math.floor(70 * waveMultiplier * enemyHpMod);
+                        this.maxHp = this.hp; this.speed = (1.2 + (wave - 1) * 0.05) * enemySpeedMod;
+                        this.radius = 18; this.color = '#3498db'; this.shape = 'circle';
+                        this.shield = Math.floor(40 * waveMultiplier); this.maxShield = this.shield;
+                        this.hasShield = true; this.damage = Math.floor(15 * damageMultiplier);
+                        break;
+                    case 'star':
+                        this.name = '四角星'; this.hp = Math.floor(35 * waveMultiplier * enemyHpMod);
+                        this.maxHp = this.hp; this.speed = (4.0 + (wave - 1) * 0.15) * enemySpeedMod;
+                        this.radius = 16; this.color = '#f1c40f'; this.shape = 'star';
+                        this.lives = 2; this.damage = Math.floor(10 * damageMultiplier);
+                        break;
+                    case 'hexagon':
+                        this.name = '六边形'; this.hp = Math.floor(200 * waveMultiplier * enemyHpMod);
+                        this.maxHp = this.hp; this.speed = (0.7 + (wave - 1) * 0.03) * enemySpeedMod;
+                        this.radius = 24; this.color = '#2ecc71'; this.shape = 'hexagon';
+                        this.damage = Math.floor(25 * damageMultiplier);
+                        break;
+                }
+                
+                this.baseSpeed = this.speed;
+                this.angle = 0; this.hitFlash = 0; this.attackCooldown = 0;
+            }
+            
+            update() {
+                if (this.dead) return;
+                
+                if (timeStopActive) return; // 时间停止
+                
+                if (this.frostTimer > 0) {
+                    this.frostTimer--;
+                    if (this.frostTimer <= 0) {
+                        this.speed = this.baseSpeed;
+                    }
+                }
+                
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+                const dist = Math.hypot(dx, dy);
+                
+                if (dist > 0) {
+                    this.x += (dx / dist) * this.speed;
+                    this.y += (dy / dist) * this.speed;
+                }
+                
+                this.angle += 0.02;
+                
+                if (this.shape === 'circle' && this.hasShield && this.shield <= 0) {
+                    this.hasShield = false; this.speed *= 2.5; this.color = '#e74c3c';
+                    showDamage(this.x, this.y - 30, '狂暴!');
+                }
+                
+                if (dist < this.radius + player.radius && this.attackCooldown <= 0) {
+                    player.takeDamage(this.damage);
+                    this.attackCooldown = 60;
+                    this.takeDamage(5);
+                }
+                
+                if (this.attackCooldown > 0) this.attackCooldown--;
+                
+                if (this.shape === 'crescent' && frameCount % 60 === 0) {
+                    enemies.forEach(e => {
+                        if (e !== this && !e.dead && e.hp < e.maxHp * 1.5) {
+                            const d = Math.hypot(e.x - this.x, e.y - this.y);
+                            if (d < this.healRadius) {
+                                e.hp = Math.min(e.maxHp * 1.5, e.hp + this.healAmount);
+                                ctx.fillStyle = 'rgba(46, 204, 113, 0.3)';
+                                ctx.beginPath();
+                                ctx.arc(e.x, e.y, e.radius + 5, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
+                        }
+                    });
+                }
+                
+                if (this.hitFlash > 0) this.hitFlash--;
+            }
+            
+            takeDamage(amount) {
+                if (this.dead) return;
+                
+                if (this.shape === 'circle' && this.hasShield) {
+                    this.shield -= amount;
+                    if (this.shield < 0) {
+                        this.hp += this.shield;
+                        this.shield = 0;
+                    }
+                    showDamage(this.x, this.y, Math.floor(amount) + '(盾)');
+                } else {
+                    this.hp -= amount;
+                    showDamage(this.x, this.y, Math.floor(amount));
+                }
+                
+                this.hitFlash = 10;
+                
+                if (this.hp <= 0) {
+                    if (this.shape === 'star' && this.lives > 1) {
+                        this.lives--; this.hp = this.maxHp * 0.5;
+                        this.speed *= 1.3; this.color = '#e67e22';
+                        showDamage(this.x, this.y, '复活!');
+                    } else {
+                        this.dead = true;
+                        score += Math.floor(this.maxHp / 10);
+                        totalKills++;
+                        createExplosion(this.x, this.y, this.radius * 2, 0);
+                    }
+                }
+            }
+            
+            draw() {
+                if (this.dead) return;
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                if (this.hitFlash > 0) ctx.globalAlpha = 0.5 + Math.sin(frameCount * 0.5) * 0.3;
+                
+                if (this.frostTimer > 0) {
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#3498db';
+                }
+                
+                // 隐形敌人debuff
+                if (DailyChallenge.modifiers.find(m => m.id === 'invisible_enemy')) {
+                    ctx.globalAlpha = 0.3;
+                }
+                
+                ctx.fillStyle = this.color;
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                
+                switch(this.shape) {
+                    case 'square':
+                        ctx.fillRect(-this.radius, -this.radius, this.radius*2, this.radius*2);
+                        ctx.strokeRect(-this.radius, -this.radius, this.radius*2, this.radius*2);
+                        break;
+                    case 'triangle':
+                        ctx.beginPath();
+                        ctx.moveTo(0, -this.radius);
+                        ctx.lineTo(-this.radius, this.radius);
+                        ctx.lineTo(this.radius, this.radius);
+                        ctx.closePath(); ctx.fill(); ctx.stroke();
+                        break;
+                    case 'parallelogram':
+                        ctx.beginPath();
+                        ctx.moveTo(-this.radius/2, -this.radius);
+                        ctx.lineTo(this.radius, -this.radius);
+                        ctx.lineTo(this.radius/2, this.radius);
+                        ctx.lineTo(-this.radius, this.radius);
+                        ctx.closePath(); ctx.fill(); ctx.stroke();
+                        break;
+                    case 'crescent':
+                        ctx.beginPath();
+                        ctx.arc(0, 0, this.radius, 0.5, Math.PI * 2 - 0.5);
+                        ctx.arc(-5, 0, this.radius * 0.7, Math.PI * 2 - 0.5, 0.5, true);
+                        ctx.closePath(); ctx.fill(); ctx.stroke();
+                        ctx.beginPath();
+                        ctx.arc(0, 0, this.healRadius, 0, Math.PI * 2);
+                        ctx.strokeStyle = 'rgba(46, 204, 113, 0.2)';
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([5, 5]);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                        break;
+                    case 'circle':
+                        if (this.hasShield) {
+                            ctx.beginPath();
+                            ctx.arc(0, 0, this.radius + 6, 0, Math.PI * 2);
+                            ctx.strokeStyle = `rgba(52, 152, 219, ${0.5 + Math.sin(frameCount * 0.1) * 0.3})`;
+                            ctx.lineWidth = 3; ctx.stroke();
+                            ctx.fillStyle = '#fff'; ctx.font = '10px Arial';
+                            ctx.textAlign = 'center'; ctx.fillText(Math.floor(this.shield), 0, 0);
+                        }
+                        ctx.beginPath();
+                        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                        ctx.fillStyle = this.color; ctx.fill(); ctx.stroke();
+                        break;
+                    case 'star':
+                        ctx.beginPath();
+                        for (let i = 0; i < 4; i++) {
+                            const angle = (i * Math.PI) / 2;
+                            const x = Math.cos(angle) * this.radius;
+                            const y = Math.sin(angle) * this.radius;
+                            if (i === 0) ctx.moveTo(x, y);
+                            else ctx.lineTo(x, y);
+                            const innerAngle = ((i + 0.5) * Math.PI) / 2;
+                            const ix = Math.cos(innerAngle) * (this.radius * 0.4);
+                            const iy = Math.sin(innerAngle) * (this.radius * 0.4);
+                            ctx.lineTo(ix, iy);
+                        }
+                        ctx.closePath(); ctx.fill(); ctx.stroke();
+                        if (this.lives > 1) {
+                            ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Arial';
+                            ctx.textAlign = 'center'; ctx.fillText('×2', 0, 0);
+                        }
+                        break;
+                    case 'hexagon':
+                        ctx.beginPath();
+                        for (let i = 0; i < 6; i++) {
+                            const angle = (i * Math.PI) / 3;
+                            const x = Math.cos(angle) * this.radius;
+                            const y = Math.sin(angle) * this.radius;
+                            if (i === 0) ctx.moveTo(x, y);
+                            else ctx.lineTo(x, y);
+                        }
+                        ctx.closePath(); ctx.fill(); ctx.stroke();
+                        break;
+                }
+                
+                ctx.rotate(-this.angle);
+                const barWidth = 32, barHeight = 4;
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.fillRect(-barWidth/2, -this.radius - 12, barWidth, barHeight);
+                
+                const hpPercent = Math.max(0, this.hp / this.maxHp);
+                ctx.fillStyle = hpPercent > 0.6 ? '#2ecc71' : hpPercent > 0.3 ? '#f39c12' : '#e74c3c';
+                ctx.fillRect(-barWidth/2, -this.radius - 12, barWidth * hpPercent, barHeight);
+                
+                ctx.restore();
+            }
+        }
+
+        // ==================== 游戏函数 ====================
+        function createAttackEffect(x, y, range, color, intensity) { attackEffects.push(new AttackEffect(x, y, range, color, intensity)); }
+        function createHitEffect(x, y) { hitEffects.push(new HitEffect(x, y)); }
+        function createExplosion(x, y, radius, damage) { explosions.push(new Explosion(x, y, radius, damage)); }
+        
+        function showDamage(x, y, amount) {
+            const el = document.createElement('div');
+            el.className = 'damage-text';
+            el.textContent = amount;
+            el.style.left = x + 'px';
+            el.style.top = (y - 20) + 'px';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        function spawnWave() {
+            spawnController.isSpawning = true;
+            spawnController.spawnedCount = 0;
+            spawnController.completed = false;
+            
+            const baseCount = 3 + Math.floor(wave * 1.5);
+            spawnController.totalToSpawn = baseCount;
+            spawnController.spawnInterval = Math.max(400, 800 - wave * 30);
+            
+            const types = ['square'];
+            if (wave > 1) types.push('triangle');
+            if (wave > 2) types.push('parallelogram');
+            if (wave > 3) types.push('crescent');
+            if (wave > 4) types.push('circle');
+            if (wave > 5) types.push('star');
+            if (wave > 6) types.push('hexagon');
+            
+            const eliteChance = Math.min(0.3, (wave - 5) * 0.05);
+            let spawnIndex = 0;
+            
+            function spawnNext() {
+                if (gameState !== 'playing' || isPaused || spawnIndex >= baseCount) {
+                    if (spawnIndex >= baseCount) {
+                        spawnController.isSpawning = false;
+                        spawnController.completed = true;
+                    }
+                    return;
+                }
+                
+                let type = types[Math.floor(Math.random() * types.length)];
+                if (wave > 5 && Math.random() < eliteChance) {
+                    const elites = ['circle', 'star', 'hexagon'];
+                    type = elites[Math.floor(Math.random() * elites.length)];
+                }
+                
+                enemies.push(new Enemy(type));
+                spawnController.spawnedCount++;
+                spawnIndex++;
+                
+                setTimeout(spawnNext, spawnController.spawnInterval + Math.random() * 200);
+            }
+            
+            spawnNext();
+            
+            const waveInfo = document.getElementById('wave-info');
+            waveInfo.textContent = `第 ${wave} 波`;
+            
+            // 每日挑战：显示目标波数
+            if (DailyChallenge.isActive) {
+                document.getElementById('max-wave-display').textContent = ` / ${DailyChallenge.targetWaves}`;
+                // 检查是否完成目标
+                if (DailyChallenge.checkComplete(wave)) {
+                    showChallengeComplete();
+                    return;
+                }
+            } else {
+                document.getElementById('max-wave-display').textContent = '';
+            }
+            
+            waveInfo.style.opacity = '1';
+            setTimeout(() => { waveInfo.style.opacity = '0'; }, 2000);
+        }
+
+        function generateRandomUpgrade() {
+            const config = pigeonTypes[player.type];
+            if (config.noInGameUpgrade) return null;
+            
+            const mechanicChance = 0.25 + Math.min(0.2, wave * 0.015);
+            if (Math.random() < mechanicChance) {
+                const available = mechanicUpgrades.filter(m => {
+                    const currentLevel = mechanicLevels[m.id] || 0;
+                    return currentLevel < m.maxLevel;
+                });
+                
+                if (available.length > 0) {
+                    const upgrade = available[Math.floor(Math.random() * available.length)];
+                    const nextLevel = (mechanicLevels[upgrade.id] || 0) + 1;
+                    const isUpgrade = mechanicLevels[upgrade.id] > 0;
+                    
+                    return {
+                        id: upgrade.id,
+                        name: upgrade.name + (isUpgrade ? ` Lv.${nextLevel}` : ''),
+                        icon: upgrade.icon,
+                        desc: upgrade.getDesc(nextLevel),
+                        rarity: upgrade.rarity,
+                        isMechanic: true,
+                        isUpgrade: isUpgrade,
+                        level: nextLevel,
+                        maxLevel: upgrade.maxLevel,
+                        effect: () => {
+                            mechanicLevels[upgrade.id] = nextLevel;
+                            upgrade.apply(nextLevel);
+                        }
+                    };
+                }
+            }
+            
+            const types = [
+                { id: 'damage', name: '锋利鸟喙', icon: '🔪', baseMin: 5, baseMax: 35, unit: '%', scale: 0.01, 
+                  effect: (v) => playerUpgrades.damageBonus += v, disabled: config.noDamageUpgrade },
+                { id: 'range', name: '鹰眼视觉', icon: '👁️', baseMin: 5, baseMax: 40, unit: '%', scale: 0.01, 
+                  effect: (v) => playerUpgrades.rangeBonus += v },
+                { id: 'hp', name: '健壮胸肌', icon: '💪', baseMin: 5, baseMax: 40, unit: '%', scale: 0.01, 
+                  effect: (v) => playerUpgrades.hpBonus += v },
+                { id: 'speed', name: '轻盈羽翼', icon: '🪶', baseMin: 5, baseMax: 30, unit: '%', scale: 0.01, 
+                  effect: (v) => playerUpgrades.speedBonus += v },
+                { id: 'cooldown', name: config.special === 'blade' ? '涡轮加速' : '快速反应', 
+                  icon: config.special === 'blade' ? '⚙️' : '⚡', baseMin: 5, baseMax: 25, unit: '%', scale: 0.01, 
+                  effect: (v) => playerUpgrades.cooldownReduction += v,
+                  desc: config.special === 'blade' ? '刀片旋转速度+伤害频率' : '攻击冷却缩短' },
+                { id: 'lifesteal', name: '吸血本能', icon: '🩸', baseMin: 3, baseMax: 20, unit: '%', scale: 0.01, 
+                  effect: (v) => playerUpgrades.lifeStealBonus += v },
+                { id: 'shield', name: '能量护盾', icon: '🛡️', baseMin: 10, baseMax: 60, unit: '', scale: 1, 
+                  effect: (v) => playerUpgrades.shieldBonus += v }
+            ].filter(t => !t.disabled);
+            
+            const type = types[Math.floor(Math.random() * types.length)];
+            const waveBonus = Math.min(wave * 2, 20);
+            const minVal = type.baseMin + waveBonus * 0.5;
+            const maxVal = Math.min(type.baseMax + waveBonus, type.baseMax * 1.5);
+            const value = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
+            
+            const percent = (value - type.baseMin) / (type.baseMax - type.baseMin);
+            let rarity;
+            if (percent >= 0.95) rarity = 'mythic';
+            else if (percent >= 0.85) rarity = 'legendary';
+            else if (percent >= 0.7) rarity = 'epic';
+            else if (percent >= 0.5) rarity = 'rare';
+            else if (percent >= 0.3) rarity = 'uncommon';
+            else rarity = 'common';
+            
+            return {
+                id: type.id + '_' + Date.now() + '_' + Math.random(),
+                name: type.name, icon: type.icon, value: value, unit: type.unit, rarity: rarity,
+                desc: type.desc || '提升属性',
+                actualValue: value * type.scale, effect: () => type.effect(value * type.scale)
+            };
+        }
+
+        function showUpgradeMenu() {
+            isPaused = true;
+            const config = pigeonTypes[player.type];
+            
+            if (config.noInGameUpgrade) {
+                player.resetLivesForNewWave();
+                spawnController = { isSpawning: false, totalToSpawn: 0, spawnedCount: 0, lastSpawnTime: 0, spawnInterval: 0, completed: false };
+                wave++;
+                isPaused = false;
+                spawnWave();
+                return;
+            }
+            
+            const menu = document.getElementById('upgrade-menu');
+            const optionsContainer = document.getElementById('upgrade-options');
+            const confirmBtn = document.getElementById('confirm-upgrade');
+            
+            document.getElementById('upgrade-wave').textContent = wave;
+            document.getElementById('stat-damage').textContent = Math.floor(player.damage);
+            document.getElementById('stat-range').textContent = Math.floor(player.attackRange);
+            document.getElementById('stat-hp').textContent = Math.floor(player.maxHp);
+            document.getElementById('stat-speed').textContent = player.speed.toFixed(1);
+            
+            optionsContainer.innerHTML = '';
+            let selectedUpgrade = null;
+            
+            const upgradeCount = config.upgradeMultiplier === 2 ? 2 : 3;
+            const selectedUpgrades = [];
+            for (let i = 0; i < upgradeCount; i++) {
+                selectedUpgrades.push(generateRandomUpgrade());
+            }
+            
+            selectedUpgrades.forEach((upgrade) => {
+                const card = document.createElement('div');
+                card.className = 'upgrade-card';
+                
+                const mechanicBadge = upgrade.isMechanic ? '<div class="mechanic-badge">机制</div>' : '';
+                const levelBadge = upgrade.isMechanic ? `<div class="mechanic-level">Lv.${upgrade.level}/${upgrade.maxLevel}</div>` : '';
+                
+                card.innerHTML = `
+                    ${mechanicBadge}
+                    ${levelBadge}
+                    <div class="upgrade-rarity rarity-${upgrade.rarity}">${upgrade.rarity.toUpperCase()}</div>
+                    <div class="upgrade-icon">${upgrade.icon}</div>
+                    <div class="upgrade-name">${upgrade.name}</div>
+                    <div class="upgrade-desc">${upgrade.desc}</div>
+                    ${!upgrade.isMechanic ? `<div class="upgrade-value" style="color: ${getRarityColor(upgrade.rarity)}">+${upgrade.value}${upgrade.unit}</div>` : ''}
+                `;
+                
+                card.addEventListener('click', () => {
+                    document.querySelectorAll('.upgrade-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    selectedUpgrade = upgrade;
+                    confirmBtn.classList.add('show');
+                });
+                
+                optionsContainer.appendChild(card);
+            });
+            
+            confirmBtn.onclick = () => {
+                if (!selectedUpgrade) return;
+                selectedUpgrade.effect();
+                
+                if (selectedUpgrade.isMechanic) {
+                    player.updateMechanicIndicators();
+                    if (selectedUpgrade.id === 'summon_flock') {
+                        summonedAllies = [];
+                        for (let i = 0; i < playerUpgrades.summonCount; i++) {
+                            summonedAllies.push(new SummonedAlly(player.x, player.y, player));
+                        }
+                    }
+                }
+                
+                player.applyUpgrades();
+                player.hp = player.maxHp;
+                player.shield = player.maxShield;
+                player.resetLivesForNewWave();
+                
+                menu.style.display = 'none';
+                isPaused = false;
+                spawnController = { isSpawning: false, totalToSpawn: 0, spawnedCount: 0, lastSpawnTime: 0, spawnInterval: 0, completed: false };
+                wave++;
+                spawnWave();
+            };
+            
+            menu.style.display = 'flex';
+        }
+
+        function getRarityColor(rarity) {
+            const colors = { common: '#95a5a6', uncommon: '#2ecc71', rare: '#3498db', epic: '#9b59b6', legendary: '#f39c12', mythic: '#e74c3c' };
+            return colors[rarity] || '#fff';
+        }
+
+        // ==================== 游戏循环 ====================
+        function gameLoop() {
+            if (gameState !== 'playing') {
+                if (gameState === 'menu') {
+                    ctx.fillStyle = '#1a1a2e';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+            
+            if (isPaused) {
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+            
+            frameCount++;
+            
+            ctx.fillStyle = 'rgba(26, 26, 46, 0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制技能效果
+            SkillSystem.draw();
+            
+            player.update();
+            player.draw();
+            
+            attackEffects = attackEffects.filter(e => e.life > 0);
+            attackEffects.forEach(e => { e.update(); e.draw(); });
+            
+            hitEffects = hitEffects.filter(e => e.life > 0);
+            hitEffects.forEach(e => { e.update(); e.draw(); });
+            
+            explosions = explosions.filter(e => !e.dead);
+            explosions.forEach(e => { e.update(); e.draw(); });
+            
+            enemies = enemies.filter(e => !e.dead);
+            enemies.forEach(e => { e.update(); e.draw(); });
+            
+            // 检查波次完成
+            if (enemies.length === 0 && !isPaused && spawnController.completed) {
+                // 每日挑战：检查是否完成目标波数
+                if (DailyChallenge.isActive && DailyChallenge.checkComplete(wave)) {
+                    showChallengeComplete();
+                } else {
+                    showUpgradeMenu();
+                }
+            }
+            
+            document.getElementById('score').textContent = score;
+            document.getElementById('wave').textContent = wave;
+            document.getElementById('health-fill').style.width = (player.hp / player.maxHp * 100) + '%';
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameOver() {
+            gameState = 'gameover';
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('final-wave').textContent = wave;
+            document.getElementById('game-over').style.display = 'flex';
+            document.getElementById('lives-indicator').style.display = 'none';
+            document.getElementById('time-growth-indicator').style.display = 'none';
+            document.getElementById('blade-speed-indicator').style.display = 'none';
+            document.getElementById('mechanic-indicators').innerHTML = '';
+            
+            // 隐藏技能按钮
+            document.getElementById('skill-1').classList.add('hidden');
+            document.getElementById('skill-2').classList.add('hidden');
+        }
+
+        function showChallengeComplete() {
+            isPaused = true;
+            const completeTime = Math.floor((Date.now() - DailyChallenge.startTime) / 1000);
+            const minutes = Math.floor(completeTime / 60);
+            const seconds = completeTime % 60;
+            
+            document.getElementById('challenge-waves').textContent = wave;
+            document.getElementById('challenge-time').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            // 计算评级
+            let rank = 'C';
+            if (wave >= 20) rank = 'S';
+            else if (wave >= 15) rank = 'A';
+            else if (wave >= 10) rank = 'B';
+            
+            const rankEl = document.getElementById('challenge-rank');
+            rankEl.textContent = rank;
+            rankEl.className = 'challenge-rank rank-' + rank.toLowerCase();
+            
+            // 计算奖励
+            const reward = DailyChallenge.calculateReward(wave, score);
+            document.getElementById('challenge-reward').textContent = reward;
+            
+            document.getElementById('challenge-complete').style.display = 'flex';
+            
+            // 发放奖励
+            StorageManager.addDodeca(reward);
+            StorageManager.markDailyCompleted();
+        }
+
+        function closeChallengeComplete() {
+            document.getElementById('challenge-complete').style.display = 'none';
+            showSettlement();
+        }
+
+        // ==================== 结算系统 ====================
+        function showSettlement() {
+            const config = pigeonTypes[player.type];
+            const baseDodeca = totalKills;
+            const waveBonus = wave * 2;
+            
+            const dodecaMult = 1 + StorageManager.getMetaBonus('dodecaGain') + (config.dodecaBonus || 0);
+            const finalDodeca = Math.floor((baseDodeca + waveBonus) * dodecaMult);
+            
+            const feather = wave;
+            
+            StorageManager.addDodeca(finalDodeca);
+            StorageManager.addFeather(feather);
+            
+            const overflowResult = StorageManager.convertOverflowFeather();
+            
+            document.getElementById('game-over').style.display = 'none';
+            document.getElementById('settlement-screen').style.display = 'flex';
+            
+            document.getElementById('settlement-kills').textContent = totalKills;
+            document.getElementById('settlement-waves').textContent = wave;
+            document.getElementById('settlement-score').textContent = score;
+            
+            document.getElementById('reward-dodeca').textContent = '+' + finalDodeca;
+            document.getElementById('reward-feather').textContent = '+' + feather;
+            
+            const overflowDiv = document.getElementById('overflow-convert');
+            if (overflowResult) {
+                overflowDiv.style.display = 'block';
+                document.getElementById('overflow-amount').textContent = overflowResult.overflow;
+                document.getElementById('overflow-dodeca').textContent = overflowResult.convertedDodeca;
+            } else {
+                overflowDiv.style.display = 'none';
+            }
+            
+            if (config.dodecaBonus) {
+                document.getElementById('reward-dodeca').innerHTML += ' <span style="font-size:14px;color:#f1c40f">(魔鸽加成)</span>';
+            }
+        }
+
+        function finishSettlement() {
+            document.getElementById('settlement-screen').style.display = 'none';
+            location.reload();
+        }
+
+        // ==================== Meta菜单 ====================
+        function showMetaMenu() {
+            document.getElementById('meta-menu').style.display = 'flex';
+            updateMetaDisplay();
+        }
+
+        function closeMetaMenu() {
+            document.getElementById('meta-menu').style.display = 'none';
+        }
+
+        function updateMetaDisplay() {
+            const curr = StorageManager.getCurrencies();
+            document.getElementById('meta-dodeca-display').textContent = curr.dodeca;
+            document.getElementById('meta-feather-display').textContent = curr.feather;
+            
+            const container = document.getElementById('meta-upgrades');
+            container.innerHTML = '';
+            
+            const upgradeDefs = [
+                { key: 'initialDamage', name: '初始攻击', unit: '%', val: 5, desc: '每级+5%初始攻击力' },
+                { key: 'initialHp', name: '初始生命', unit: '%', val: 5, desc: '每级+5%初始生命值' },
+                { key: 'initialSpeed', name: '初始速度', unit: '%', val: 3, desc: '每级+3%初始移动速度' },
+                { key: 'dodecaGain', name: '正12面体获取', unit: '%', val: 10, desc: '每级+10%正12面体获取量' },
+                { key: 'startShield', name: '初始护盾', unit: '', val: 20, desc: '每级+20点初始护盾' },
+                { key: 'reviveChance', name: '复活概率', unit: '%', val: 5, desc: '每级+5%概率满血复活（上限95%）' }
+            ];
+            
+            upgradeDefs.forEach(def => {
+                const stats = StorageManager.getUpgradeStats(def.key);
+                const currentBonus = StorageManager.getMetaBonus(def.key);
+                const canAfford = curr.dodeca >= stats.nextCost;
+                
+                const card = document.createElement('div');
+                card.className = 'meta-upgrade-card';
+                card.innerHTML = `
+                    <div class="meta-upgrade-name">${def.name}</div>
+                    <div class="meta-upgrade-desc">${def.desc}</div>
+                    <div class="meta-upgrade-current">
+                        等级: <strong>${stats.level}</strong> | 
+                        当前: +${def.key === 'reviveChance' ? (currentBonus * 100).toFixed(0) : (def.key === 'startShield' ? currentBonus : (currentBonus * 100).toFixed(0))}${def.unit}
+                    </div>
+                    <div class="meta-upgrade-cost">✡ ${stats.nextCost} <span style="font-size:10px;color:#aaa">(累计消耗: ${stats.totalSpent})</span></div>
+                    <button class="meta-upgrade-btn" ${!canAfford ? 'disabled' : ''} onclick="buyMetaUpgrade('${def.key}')">
+                        ${canAfford ? '升级' : '正12面体不足'}
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function buyMetaUpgrade(key) {
+            if (StorageManager.upgradeMeta(key)) {
+                updateMetaDisplay();
+                updateMenuCurrencies();
+            }
+        }
+
+        // ==================== 菜单系统 ====================
+        function updateMenuCurrencies() {
+            const curr = StorageManager.getCurrencies();
+            document.getElementById('menu-dodeca').textContent = curr.dodeca;
+            document.getElementById('menu-feather').textContent = curr.feather;
+        }
+
+        function renderPigeonSelect() {
+            const container = document.getElementById('pigeon-select');
+            container.innerHTML = '';
+            
+            const unlocked = StorageManager.getUnlockedPigeons();
+            
+            Object.keys(pigeonTypes).forEach(key => {
+                const config = pigeonTypes[key];
+                const isUnlocked = unlocked.includes(key);
+                
+                const card = document.createElement('div');
+                card.className = `pigeon-card ${!isUnlocked ? 'locked' : ''}`;
+                card.dataset.type = key;
+                
+                card.innerHTML = `
+                    ${isUnlocked ? '<div class="double-tap-hint">✓ 已选</div>' : ''}
+                    <canvas class="pigeon-preview" width="60" height="60" data-type="${key}"></canvas>
+                    <div class="pigeon-name">${config.name}</div>
+                    <div class="pigeon-desc">${config.desc}</div>
+                    <div class="pigeon-stats">
+                        <span class="stat">⚔️${getStatLetter(config.damage)}</span>
+                        <span class="stat">🛡️${getStatLetter(config.maxHp)}</span>
+                        <span class="stat">⚡${getStatLetter(config.speed)}</span>
+                    </div>
+                    ${!isUnlocked ? `<div class="unlock-cost">🪶 ${config.cost}</div>` : ''}
+                `;
+                
+                if (isUnlocked) {
+                    card.addEventListener('touchstart', handleTap, {passive: false});
+                    card.addEventListener('click', handleTap);
+                    
+                    let lastTapTime = 0;
+                    function handleTap(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const currentTime = new Date().getTime();
+                        const tapLength = currentTime - lastTapTime;
+                        
+                        if (tapLength < 300 && tapLength > 0) {
+                            selectPigeon(card, key);
+                        } else {
+                            document.querySelectorAll('.pigeon-card').forEach(c => c.classList.remove('selected'));
+                            card.classList.add('selected');
+                            document.getElementById('selection-hint').textContent = '👆 再点一次确认选择';
+                        }
+                        lastTapTime = currentTime;
+                    }
+                } else {
+                    card.addEventListener('click', () => showUnlockModal(key));
+                }
+                
+                container.appendChild(card);
+            });
+            
+            setTimeout(() => {
+                document.querySelectorAll('.pigeon-preview').forEach(canvas => {
+                    const ctx = canvas.getContext('2d');
+                    const type = canvas.dataset.type;
+                    ctx.clearRect(0, 0, 60, 60);
+                    drawPigeon(ctx, type, 30, 30, 35);
+                });
+            }, 100);
+        }
+
+        function getStatLetter(value) {
+            if (value >= 40) return 'S';
+            if (value >= 30) return 'A';
+            if (value >= 20) return 'B';
+            if (value >= 10) return 'C';
+            return 'D';
+        }
+
+        let pendingUnlock = null;
+        function showUnlockModal(type) {
+            const config = pigeonTypes[type];
+            const curr = StorageManager.getCurrencies();
+            
+            if (curr.feather < config.cost) {
+                alert('魂羽不足！需要 ' + config.cost + ' 🪶');
+                return;
+            }
+            
+            pendingUnlock = type;
+            document.getElementById('unlock-desc').textContent = `确定要花费 ${config.cost} 魂羽解锁 ${config.name} 吗？`;
+            document.getElementById('unlock-cost').textContent = `🪶 ${config.cost}`;
+            document.getElementById('unlock-confirm-btn').disabled = curr.feather < config.cost;
+            document.getElementById('unlock-modal').style.display = 'flex';
+        }
+
+        function confirmUnlock() {
+            if (!pendingUnlock) return;
+            const config = pigeonTypes[pendingUnlock];
+            const curr = StorageManager.getCurrencies();
+            
+            if (curr.feather >= config.cost) {
+                curr.feather -= config.cost;
+                StorageManager.saveCurrencies(curr);
+                StorageManager.unlockPigeon(pendingUnlock);
+                pigeonTypes[pendingUnlock].unlocked = true;
+                
+                updateMenuCurrencies();
+                renderPigeonSelect();
+                closeUnlockModal();
+            }
+        }
+
+        function closeUnlockModal() {
+            pendingUnlock = null;
+            document.getElementById('unlock-modal').style.display = 'none';
+        }
+
+        function selectPigeon(card, type) {
+            document.querySelectorAll('.pigeon-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            selectedPigeon = type;
+            
+            document.getElementById('selection-hint').textContent = '✓ 已选择 ' + pigeonTypes[type].name;
+            document.getElementById('selection-hint').style.background = 'rgba(46, 204, 113, 0.2)';
+            document.getElementById('selection-hint').style.borderColor = 'rgba(46, 204, 113, 0.5)';
+            document.getElementById('selection-hint').style.color = '#2ecc71';
+            
+            const startBtn = document.getElementById('start-btn');
+            startBtn.classList.add('show');
+            startBtn.textContent = DailyChallenge.isActive ? 
+                '开始每日挑战 (' + pigeonTypes[type].name + ')' : 
+                '开始游戏 (' + pigeonTypes[type].name + ')';
+        }
+
+        // ==================== 控制 ====================
+        const joystickZone = document.getElementById('joystick-zone');
+        const joystickKnob = document.getElementById('joystick-knob');
+        let joystickData = { x: 0, y: 0, active: false };
+        let joystickCenter = { x: 0, y: 0 };
+        
+        function initJoystick() {
+            const rect = joystickZone.getBoundingClientRect();
+            joystickCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+            
+            function handleStart(e) {
+                e.preventDefault();
+                joystickData.active = true;
+                handleMove(e);
+            }
+            
+            function handleMove(e) {
+                if (!joystickData.active) return;
+                e.preventDefault();
+                const touch = e.touches ? e.touches[0] : e;
+                const dx = touch.clientX - joystickCenter.x;
+                const dy = touch.clientY - joystickCenter.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const maxDistance = 35;
+                
+                let moveX = dx, moveY = dy;
+                if (distance > maxDistance) {
+                    moveX = (dx / distance) * maxDistance;
+                    moveY = (dy / distance) * maxDistance;
+                }
+                
+                joystickKnob.style.transform = `translate(calc(-50% + ${moveX}px), calc(-50% + ${moveY}px))`;
+                joystickData.x = moveX / maxDistance;
+                joystickData.y = moveY / maxDistance;
+            }
+            
+            function handleEnd(e) {
+                e.preventDefault();
+                joystickData.active = false;
+                joystickData.x = 0;
+                joystickData.y = 0;
+                joystickKnob.style.transform = 'translate(-50%, -50%)';
+            }
+            
+            joystickZone.addEventListener('touchstart', handleStart, {passive: false});
+            joystickZone.addEventListener('touchmove', handleMove, {passive: false});
+            joystickZone.addEventListener('touchend', handleEnd);
+            joystickZone.addEventListener('mousedown', handleStart);
+            window.addEventListener('mousemove', (e) => { if (joystickData.active) handleMove(e); });
+            window.addEventListener('mouseup', handleEnd);
+        }
+        
+        let isAttacking = false;
+        const attackBtn = document.getElementById('attack-btn');
+        const attackStatus = document.getElementById('attack-status');
+        
+        attackBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (player && player.attackCooldown <= 0 && !isPaused) {
+                isAttacking = true;
+                player.attack();
+            }
+        });
+        attackBtn.addEventListener('touchend', (e) => { e.preventDefault(); isAttacking = false; });
+        attackBtn.addEventListener('mousedown', () => {
+            if (player && player.attackCooldown <= 0 && !isPaused) {
+                isAttacking = true;
+                player.attack();
+            }
+        });
+        attackBtn.addEventListener('mouseup', () => isAttacking = false);
+        
+        // 技能按钮事件
+        document.getElementById('skill-1').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            SkillSystem.useSkill(0);
+        });
+        document.getElementById('skill-1').addEventListener('mousedown', () => SkillSystem.useSkill(0));
+        
+        document.getElementById('skill-2').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            SkillSystem.useSkill(1);
+        });
+        document.getElementById('skill-2').addEventListener('mousedown', () => SkillSystem.useSkill(1));
+        
+        document.getElementById('start-btn').addEventListener('click', () => {
+            if (!selectedPigeon) return;
+            
+            document.getElementById('menu').classList.add('hidden');
+            document.getElementById('meta-btn').style.display = 'none';
+            gameState = 'playing';
+            
+            player = new Player(selectedPigeon);
+            document.getElementById('pigeon-name').textContent = pigeonTypes[selectedPigeon].name;
+            
+            // 分配技能
+            SkillSystem.assignSkills(selectedPigeon);
+            
+            initJoystick();
+            spawnWave();
+            gameLoop();
+        });
+        
+        const menu = document.getElementById('menu');
+        menu.addEventListener('touchmove', (e) => { if (gameState === 'menu') e.stopPropagation(); }, {passive: true});
+        
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    </script>
+</body>
+</html>
